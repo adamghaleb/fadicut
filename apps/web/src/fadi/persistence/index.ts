@@ -22,3 +22,11 @@ export {
 	type LocalMirror,
 	type ProjectPersistenceOptions,
 } from "./project-persistence";
+export { projectToEdl, projectToMeta } from "./edl-adapter";
+export {
+	initDriveSync,
+	mirrorProjectToBridge,
+	loadProjectFromBridge,
+	flushDriveSync,
+	syncDriveIfOnline,
+} from "./wire";

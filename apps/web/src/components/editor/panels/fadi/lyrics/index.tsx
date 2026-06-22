@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/select";
 import { useEditor } from "@/editor/use-editor";
 import { listSongs, loadSongContext } from "./song-context";
+import { secondsToMediaTime } from "@/components/editor/panels/fadi/beatgrid";
 import {
 	countCues,
 	placeLyrics,
@@ -79,6 +80,7 @@ export function FadiLyricsPanel({ bridgeConfig }: FadiLyricsPanelProps) {
 	const [granularity, setGranularity] = useState<PlacementGranularity>("line");
 	const [strobe, setStrobe] = useState(false);
 	const [placedTrackId, setPlacedTrackId] = useState<string | null>(null);
+	const [markedBeats, setMarkedBeats] = useState<number | null>(null);
 	const [bake, setBake] = useState<BakeState>(IDLE_BAKE);
 	const unsubRef = useRef<(() => void) | null>(null);
 
@@ -109,6 +111,26 @@ export function FadiLyricsPanel({ bridgeConfig }: FadiLyricsPanelProps) {
 			style: previewStyle,
 		});
 		setPlacedTrackId(trackId);
+	}
+
+	function handleMarkBeats() {
+		if (!song) return;
+		// Lay the song's downbeats onto the timeline as bookmarks (the beat grid),
+		// from the already-loaded SongContext — robust + offline-safe. Skips beats
+		// already marked so it's idempotent.
+		const downbeats =
+			song.tempo.downbeats.length > 0
+				? song.tempo.downbeats
+				: song.tempo.beat_grid;
+		let added = 0;
+		for (const sec of downbeats) {
+			const time = secondsToMediaTime(sec);
+			if (!editor.scenes.isBookmarked({ time })) {
+				void editor.scenes.toggleBookmark({ time });
+				added += 1;
+			}
+		}
+		setMarkedBeats(added);
 	}
 
 	function handleBake() {
@@ -237,6 +259,17 @@ export function FadiLyricsPanel({ bridgeConfig }: FadiLyricsPanelProps) {
 			{placedTrackId ? (
 				<p className="text-muted-foreground text-xs">
 					Placed {cueCount} text elements on a new track.
+				</p>
+			) : null}
+
+			<Button variant="outline" onClick={handleMarkBeats} disabled={!song}>
+				Mark beats on timeline
+			</Button>
+			{markedBeats !== null ? (
+				<p className="text-muted-foreground text-xs">
+					{markedBeats > 0
+						? `Marked ${markedBeats} downbeats as bookmarks.`
+						: "Beats already marked."}
 				</p>
 			) : null}
 
