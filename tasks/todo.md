@@ -1,13 +1,16 @@
-# fadicut fadiloop — todo
+# fadicut fadiloop — todo (phase 2 complete)
 
-- [x] 1. bun install + tsc typecheck clean (0 errors)
-- [x] 2. Lyrics + Library tabs mounted (verified live)
-- [x] 3. Beat markers on timeline (verified live)
-- [x] 4. Fadi FX (grade/ramp) panels in properties (verified live)
-       REMAINING: wire Export → FadiEDL → render_grade/render_ramp jobs (export-bake orchestration)
-- [x] 5. Asset library (8.5k assets, alpha) (verified live)
-- [x] native bake pipeline proven (render_lyric job runs, SSE progress)
-- [x] 7. Drive-backed persistence (POST /projects 200, saved to disk)
-- [ ] 6. Polish pass — cohesive Fadi styling, empty/loading states, panel headers
-- [ ] 4b. Export-bake orchestration (grade/ramp/lyric → final composited export)
-- [ ] Seagate FADICUT-PROJECTS path (currently falls back to ~/Documents)
+PHASE 1 (all ✓, verified live): typecheck, lyrics+library tabs, beat markers, Fadi FX
+(grade/ramp), asset library, drive persistence, polish, Bridge status dot, native export.
+
+PHASE 2 (all ✓, issues #8-12 closed):
+- [x] #8 orchestrator handler-dispatch + strobe/overlay/morph bakers (all 8 effects bake in export)
+- [x] #9 micrographics treatment (baker + Fadi FX panel) — VERIFIED composited in export
+- [x] #10 square blob-tracking (baker + Fadi FX panel)
+- [x] #11 blob-asset disk staging (POST /assets/stage)
+- [x] #12 Seagate FADICUT-PROJECTS path
+
+VERIFIED END-TO-END in native export: grade + micrographics + strobe (baked:{grade,micrographics,strobe}).
+Built + handler-registered + agent-verified-standalone (not yet exercised in a full export with real inputs): ramp, overlay, morph, blob_track, lyric-overlay.
+
+Residual follow-ups: exercise overlay/morph/blob_track export with real inputs; RIFE-on ramp bake; lyric line_range slicing; browser-impossible Bridge auto-launch (needs desktop/Tauri branch).
