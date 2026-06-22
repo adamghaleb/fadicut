@@ -67,13 +67,36 @@ def get_settings() -> Settings:
     roots_env = _split_csv(os.environ.get("FADI_BRIDGE_MEDIA_ROOTS"))
     if not roots_env:
         roots_env = [str(Path.home())]
+    # Always union in the asset_roots.toml paths so the media server can SERVE
+    # anything the asset indexer can BROWSE (otherwise a Library asset on a root not
+    # listed in FADI_BRIDGE_MEDIA_ROOTS 403s). Parsed inline to avoid importing the
+    # assets package (circular). Offline drives keep their literal path for remount.
+    roots_all = list(roots_env)
+    try:
+        import tomllib
+
+        toml_path = Path(__file__).resolve().parent.parent / "asset_roots.toml"
+        if toml_path.is_file():
+            with toml_path.open("rb") as f:
+                for entry in tomllib.load(f).get("root", []):
+                    p = entry.get("path")
+                    if p:
+                        roots_all.append(p)
+    except Exception:
+        pass  # roots toml is best-effort; env roots still apply
+
     media_roots = []
-    for r in roots_env:
+    seen: set[str] = set()
+    for r in roots_all:
         try:
-            media_roots.append(Path(r).expanduser().resolve())
+            path = Path(r).expanduser().resolve()
         except OSError:
             # Unmounted drive etc. — keep the literal expanded path so it works once mounted.
-            media_roots.append(Path(r).expanduser())
+            path = Path(r).expanduser()
+        key = str(path)
+        if key not in seen:
+            seen.add(key)
+            media_roots.append(path)
 
     return Settings(
         host=os.environ.get("FADI_BRIDGE_HOST", "127.0.0.1"),
