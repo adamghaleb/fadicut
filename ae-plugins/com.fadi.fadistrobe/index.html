@@ -1,0 +1,124 @@
+<!doctype html>
+<html>
+	<head>
+		<meta charset="UTF-8" />
+		<title>fadiStrobe</title>
+		<link rel="stylesheet" href="css/styles.css" />
+	</head>
+	<body>
+		<div class="panel">
+			<!-- Style -->
+			<div class="section">
+				<div class="section-label">Strobe</div>
+				<div class="row">
+					<span class="row-label">Style</span>
+					<select id="style">
+						<option value="hard">Hard (on/off)</option>
+						<option value="pulse">Pulse (sine)</option>
+						<option value="triangle">Triangle</option>
+						<option value="flicker">Flicker (random)</option>
+					</select>
+				</div>
+				<canvas id="preview" class="preview" width="200" height="40"></canvas>
+				<div class="preview-hint" id="previewHint">opacity over time</div>
+			</div>
+
+			<!-- Timing -->
+			<div class="section">
+				<div class="section-label">Timing (frames)</div>
+				<div class="row">
+					<span class="row-label" id="onLabel">On</span>
+					<div class="chip-grid" id="onChips"></div>
+					<input
+						type="number"
+						class="chip-input"
+						id="onInput"
+						min="1"
+						max="60"
+						value="2"
+					/>
+				</div>
+				<div class="row">
+					<span class="row-label" id="offLabel">Off</span>
+					<div class="chip-grid" id="offChips"></div>
+					<input
+						type="number"
+						class="chip-input"
+						id="offInput"
+						min="0"
+						max="60"
+						value="2"
+					/>
+				</div>
+			</div>
+
+			<!-- Levels -->
+			<div class="section">
+				<div class="section-label">Levels</div>
+				<div class="row">
+					<span class="row-label">Max %</span>
+					<div class="row-right">
+						<input type="range" id="maxOp" min="0" max="100" value="100" />
+						<span class="val" id="maxOpVal">100</span>
+					</div>
+				</div>
+				<div class="row">
+					<span class="row-label">Min %</span>
+					<div class="row-right">
+						<input type="range" id="minOp" min="0" max="100" value="0" />
+						<span class="val" id="minOpVal">0</span>
+					</div>
+				</div>
+			</div>
+
+			<!-- Layers -->
+			<div class="section">
+				<div class="section-label">Layers</div>
+				<div class="row">
+					<span class="row-label">Stagger</span>
+					<div class="chip-grid" id="staggerChips"></div>
+					<input
+						type="number"
+						class="chip-input"
+						id="staggerInput"
+						min="0"
+						max="120"
+						value="0"
+					/>
+				</div>
+			</div>
+
+			<!-- Output -->
+			<div class="section">
+				<div class="section-label">Output</div>
+				<div class="row">
+					<span class="row-label">Duration</span>
+					<label class="toggle">
+						<input type="checkbox" id="matchLayerToggle" checked />
+						<span class="toggle-track"></span>
+					</label>
+					<span style="font-size: 9px; color: var(--text-dim)"
+						>match layer</span
+					>
+				</div>
+				<div class="row hidden" id="totalDurationRow">
+					<span class="row-label">Seconds</span>
+					<input
+						type="number"
+						id="totalDuration"
+						min="0.5"
+						max="300"
+						step="0.5"
+						value="10"
+					/>
+				</div>
+			</div>
+
+			<button class="apply-btn" id="applyBtn">STROBE</button>
+			<div class="status" id="status"></div>
+		</div>
+
+		<script src="lib/CSInterface.js"></script>
+		<script src="js/main.js"></script>
+	</body>
+</html>

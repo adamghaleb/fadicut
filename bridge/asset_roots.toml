@@ -1,0 +1,66 @@
+# Fadistyle asset roots — every place Adam has ever made Fadi-style assets.
+# The Bridge asset indexer (batch E) walks these into a SQLite catalog with content
+# hashes, proxies, and tags. Add roots freely; the indexer is incremental.
+#
+# `kind` hints the default tag/category. `recursive` walks subdirs.
+
+[[root]]
+label = "Pictures master"
+path = "~/Pictures/adam fadi"
+kind = "mixed"
+recursive = true
+
+[[root]]
+label = "Fadi loops v2 (alpha ProRes)"
+path = "~/Movies/new fadi loops v2"
+kind = "loop"
+recursive = true
+
+[[root]]
+label = "Tracklist reveal / Remotion"
+path = "~/Movies/tracklist-reveal"
+kind = "overlay"
+recursive = true
+
+[[root]]
+label = "FadiFiles loops"
+path = "~/Movies/fadifiles loops"
+kind = "loop"
+recursive = true
+
+[[root]]
+label = "Drive — CLIPSTITCH library"
+path = "/Volumes/Seagate Portable Drive/CLIPSTITCH"
+kind = "clip"
+recursive = true
+
+[[root]]
+label = "Drive — FadiFiles overlays"
+path = "/Volumes/Seagate Portable Drive/FADIFILES-OVERLAYS"
+kind = "overlay"
+recursive = true
+
+[[root]]
+label = "Drive — FadiShoots"
+path = "/Volumes/Seagate Portable Drive/FADISHOOTS"
+kind = "footage"
+recursive = true
+
+[[root]]
+label = "Drive — Organized"
+path = "/Volumes/Seagate Portable Drive/ORGANIZED"
+kind = "mixed"
+recursive = true
+
+[[root]]
+label = "Drive — generic assets"
+path = "/Volumes/Seagate Portable Drive/assets"
+kind = "mixed"
+recursive = true
+
+# Sacred-geometry + fadifiles overlay packs (alpha .mov)
+[[root]]
+label = "Sacred geometry pack"
+path = "~/Pictures/adam fadi/songs/fadifiles/AI asset generation/sacred-geometry"
+kind = "overlay"
+recursive = true

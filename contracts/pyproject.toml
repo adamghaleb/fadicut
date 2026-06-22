@@ -1,0 +1,13 @@
+[project]
+name = "fadi-contracts"
+version = "1.0.0"
+description = "Shared Fadi↔OpenCut contracts: SongContext (beat/lyric spine) + FadiEDL (timeline→native render)."
+requires-python = ">=3.10"
+dependencies = ["pydantic>=2.6"]
+
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["fadi_contracts*"]

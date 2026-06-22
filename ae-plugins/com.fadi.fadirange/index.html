@@ -1,0 +1,220 @@
+<!doctype html>
+<html>
+	<head>
+		<meta charset="UTF-8" />
+		<title>fadiRange</title>
+		<link rel="stylesheet" href="css/styles.css" />
+	</head>
+	<body>
+		<div class="panel">
+			<!-- Preview -->
+			<div class="section">
+				<div class="section-label">Preview</div>
+				<div class="preview-wrap">
+					<canvas id="previewCanvas" width="240" height="135"></canvas>
+					<div class="preview-empty" id="previewEmpty">
+						Select a layer, then Grab Frame
+					</div>
+				</div>
+				<div class="preview-actions">
+					<button id="grabBtn">⟳ Grab Frame</button>
+					<button id="playBtn">▶ Play</button>
+				</div>
+			</div>
+
+			<!-- Range -->
+			<div class="section">
+				<div class="section-label">Range</div>
+				<div class="row">
+					<span class="row-label">Mode</span>
+					<div class="seg" id="modeSeg">
+						<button data-mode="0" class="active">Whole</button>
+						<button data-mode="1">Luma</button>
+						<button data-mode="2">Color</button>
+					</div>
+				</div>
+
+				<!-- color target picker (color mode only) -->
+				<div class="row hidden" id="targetRow">
+					<span class="row-label">Target</span>
+					<div class="row-right">
+						<div
+							class="target-chip"
+							id="targetChip"
+							style="background: #ff0060"
+						></div>
+						<span style="font-size: 9px; color: var(--text-dim)"
+							>click preview to pick</span
+						>
+					</div>
+				</div>
+
+				<!-- luma band (luma mode only) -->
+				<div class="row hidden" id="lumaLoRow">
+					<span class="row-label">Low</span>
+					<div class="row-right">
+						<input type="range" id="lumaLo" min="0" max="100" value="20" />
+						<span class="val" id="lumaLoVal">20</span>
+					</div>
+				</div>
+				<div class="row hidden" id="lumaHiRow">
+					<span class="row-label">High</span>
+					<div class="row-right">
+						<input type="range" id="lumaHi" min="0" max="100" value="80" />
+						<span class="val" id="lumaHiVal">80</span>
+					</div>
+				</div>
+
+				<!-- color tolerance (color mode only) -->
+				<div class="row hidden" id="tolRow">
+					<span class="row-label">Tolerance</span>
+					<div class="row-right">
+						<input type="range" id="tol" min="0" max="100" value="40" />
+						<span class="val" id="tolVal">40</span>
+					</div>
+				</div>
+
+				<!-- feather (luma + color) -->
+				<div class="row hidden" id="featherRow">
+					<span class="row-label">Feather</span>
+					<div class="row-right">
+						<input type="range" id="feather" min="0" max="50" value="8" />
+						<span class="val" id="featherVal">8</span>
+					</div>
+				</div>
+			</div>
+
+			<!-- Effect preset -->
+			<div class="section">
+				<div class="section-label">Effect</div>
+				<div class="preset-grid" id="presetGrid">
+					<button data-preset="0" class="active">Opacity</button>
+					<button data-preset="1">Fadi Recolor</button>
+					<button data-preset="2">Fadi Cycle</button>
+					<button data-preset="3">Mosaic</button>
+					<button data-preset="4">Posterize</button>
+					<button data-preset="5">Glow</button>
+					<button data-preset="6" title="Pure black &amp; white">
+						Threshold
+					</button>
+					<button data-preset="7" title="Lights = Fadi, darks = black">
+						Fadi Lights
+					</button>
+					<button data-preset="8" title="Lights = white, darks = Fadi">
+						Fadi Darks
+					</button>
+				</div>
+				<div class="row hidden" id="mosaicRow" style="margin-top: 6px">
+					<span class="row-label">Blocks</span>
+					<div class="row-right">
+						<input type="range" id="mosaic" min="2" max="80" value="16" />
+						<span class="val" id="mosaicVal">16</span>
+					</div>
+				</div>
+				<div class="row hidden" id="posterRow" style="margin-top: 6px">
+					<span class="row-label">Levels</span>
+					<div class="row-right">
+						<input type="range" id="poster" min="2" max="16" value="6" />
+						<span class="val" id="posterVal">6</span>
+					</div>
+				</div>
+				<div class="row hidden" id="thresholdRow" style="margin-top: 6px">
+					<span class="row-label">Threshold</span>
+					<div class="row-right">
+						<input type="range" id="threshold" min="0" max="100" value="50" />
+						<span class="val" id="thresholdVal">50</span>
+					</div>
+				</div>
+				<div class="row hidden" id="duoColorRow" style="margin-top: 6px">
+					<span class="row-label">Fadi</span>
+					<div
+						class="color-row"
+						id="duoSwatches"
+						style="margin-bottom: 0"
+					></div>
+				</div>
+			</div>
+
+			<!-- Modulation -->
+			<div class="section">
+				<div class="section-label">Modulation</div>
+				<div class="row">
+					<span class="row-label">Type</span>
+					<div class="seg" id="modSeg">
+						<button data-mod="static" class="active">Static</button>
+						<button data-mod="strobe">Strobe</button>
+						<button data-mod="pulse">Pulse</button>
+						<button data-mod="cycle">Cycle</button>
+						<button data-mod="flicker">Flick</button>
+					</div>
+				</div>
+				<div class="row" id="onRow">
+					<span class="row-label" id="onLabel">On</span>
+					<div class="chip-grid" id="onChips"></div>
+					<input
+						type="number"
+						class="chip-input"
+						id="onInput"
+						min="1"
+						max="60"
+						value="2"
+					/>
+				</div>
+				<div class="row" id="offRow">
+					<span class="row-label" id="offLabel">Off</span>
+					<div class="chip-grid" id="offChips"></div>
+					<input
+						type="number"
+						class="chip-input"
+						id="offInput"
+						min="0"
+						max="60"
+						value="2"
+					/>
+				</div>
+			</div>
+
+			<!-- Time range -->
+			<div class="section">
+				<div class="section-label">Time Range</div>
+				<div class="row">
+					<span class="row-label">Span</span>
+					<select id="span">
+						<option value="layer">Whole layer</option>
+						<option value="work">Work area</option>
+						<option value="custom">Custom</option>
+					</select>
+				</div>
+				<div class="row hidden" id="customSpanRow">
+					<span class="row-label">In / Out</span>
+					<div class="row-right">
+						<input
+							type="number"
+							id="tStart"
+							min="0"
+							step="0.1"
+							value="0"
+							style="width: 48px"
+						/>
+						<input
+							type="number"
+							id="tEnd"
+							min="0"
+							step="0.1"
+							value="3"
+							style="width: 48px"
+						/>
+						<span style="font-size: 9px; color: var(--text-dim)">sec</span>
+					</div>
+				</div>
+			</div>
+
+			<button class="apply-btn" id="applyBtn">APPLY RANGE</button>
+			<div class="status" id="status"></div>
+		</div>
+
+		<script src="lib/CSInterface.js"></script>
+		<script src="js/preview.js"></script>
+		<script src="js/main.js"></script>
+	</body>
+</html>
