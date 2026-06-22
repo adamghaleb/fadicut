@@ -80,8 +80,12 @@ export interface ProgressEvent {
 
 function resolveConfig(config?: BridgeConfig): Required<BridgeConfig> {
 	return {
-		baseUrl: config?.baseUrl ?? DEFAULT_BASE_URL,
-		token: config?.token ?? "",
+		baseUrl:
+			config?.baseUrl ??
+			process.env.NEXT_PUBLIC_FADI_BRIDGE_URL?.trim() ??
+			DEFAULT_BASE_URL,
+		token:
+			config?.token ?? process.env.NEXT_PUBLIC_FADI_BRIDGE_TOKEN?.trim() ?? "",
 	};
 }
 
