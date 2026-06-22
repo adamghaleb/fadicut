@@ -33,6 +33,7 @@ import {
 	SectionTitle,
 } from "@/components/section";
 import { useEditor } from "@/editor/use-editor";
+import { FadiAccentRule } from "@/components/editor/panels/fadi/fadi-panel-header";
 import { DEFAULT_EXPORT_OPTIONS } from "@/export/defaults";
 import { buildRenderEdl } from "./build-render-edl";
 import {
@@ -352,6 +353,15 @@ function ExportPopover({
 										<Download className="size-4" />
 										Export
 									</Button>
+
+									<div className="flex items-center gap-2 pt-1">
+										<FadiAccentRule className="max-w-[1.25rem] opacity-70" />
+										<span className="text-muted-foreground text-[0.7rem] font-medium tracking-wide uppercase">
+											Fadi
+										</span>
+										<div className="bg-border h-px flex-1" />
+									</div>
+
 									<Button
 										variant="outline"
 										onClick={handleFadiExport}

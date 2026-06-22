@@ -13,6 +13,7 @@
 
 import { useCallback, useMemo } from "react";
 import { useEditor } from "@/editor/use-editor";
+import { FadiPanelHeader } from "@/components/editor/panels/fadi/fadi-panel-header";
 import type { ImageElement, VideoElement } from "@/timeline";
 import {
 	GradeEffectPanel,
@@ -84,15 +85,22 @@ export function FadiFxTab({
 	);
 
 	return (
-		<div className="flex flex-col gap-2 p-2">
-			<GradeEffectPanel
-				value={grade ?? defaultGradeEffect()}
-				onChange={onGradeChange}
+		<div className="flex flex-col">
+			<FadiPanelHeader
+				title="Fadi FX"
+				subtitle="Native-baked grade + speed ramp."
+				bordered
 			/>
-			<RampEffectPanel
-				value={ramp ?? defaultRampEffect()}
-				onChange={onRampChange}
-			/>
+			<div className="flex flex-col gap-2 p-2">
+				<GradeEffectPanel
+					value={grade ?? defaultGradeEffect()}
+					onChange={onGradeChange}
+				/>
+				<RampEffectPanel
+					value={ramp ?? defaultRampEffect()}
+					onChange={onRampChange}
+				/>
+			</div>
 		</div>
 	);
 }

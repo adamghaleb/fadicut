@@ -16,6 +16,7 @@
 import { useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { FadiPanelHeader } from "@/components/editor/panels/fadi/fadi-panel-header";
 import {
 	Select,
 	SelectContent,
@@ -192,113 +193,127 @@ export function FadiLyricsPanel({ bridgeConfig }: FadiLyricsPanelProps) {
 	const baking = bake.status === "queued" || bake.status === "running";
 
 	return (
-		<div className="panel bg-background flex h-full flex-col gap-4 overflow-y-auto rounded-sm border p-4">
-			<div>
-				<h2 className="text-sm font-semibold">Fadi Lyrics</h2>
-				<p className="text-muted-foreground text-xs">
-					Beat-aligned lyric placement + native bake.
-				</p>
-			</div>
+		<div className="panel bg-background flex h-full flex-col overflow-y-auto rounded-sm border">
+			<FadiPanelHeader
+				title="Fadi Lyrics"
+				subtitle="Beat-aligned lyric placement + native bake."
+				bordered
+			/>
 
-			<div className="flex flex-col gap-1.5">
-				<Label className="text-xs">Song</Label>
-				<Select value={songId} onValueChange={setSongId}>
-					<SelectTrigger className="w-full">
-						<SelectValue placeholder="Pick a song" />
-					</SelectTrigger>
-					<SelectContent>
-						{songs.map((s) => (
-							<SelectItem key={s.id} value={s.id}>
-								{s.title} · {s.bpm} BPM
-							</SelectItem>
-						))}
-					</SelectContent>
-				</Select>
-			</div>
+			<div className="flex flex-1 flex-col gap-4 p-4">
+				<div className="flex flex-col gap-1.5">
+					<Label className="text-xs">Song</Label>
+					<Select value={songId} onValueChange={setSongId}>
+						<SelectTrigger className="w-full">
+							<SelectValue placeholder="Pick a song" />
+						</SelectTrigger>
+						<SelectContent>
+							{songs.map((s) => (
+								<SelectItem key={s.id} value={s.id}>
+									{s.title} · {s.bpm} BPM
+								</SelectItem>
+							))}
+						</SelectContent>
+					</Select>
+				</div>
 
-			<div className="flex flex-col gap-1.5">
-				<Label className="text-xs">Granularity</Label>
-				<Select
-					value={granularity}
-					onValueChange={(v) => setGranularity(v as PlacementGranularity)}
-				>
-					<SelectTrigger className="w-full">
-						<SelectValue />
-					</SelectTrigger>
-					<SelectContent>
-						<SelectItem value="line">Line by line</SelectItem>
-						<SelectItem value="word">Word by word</SelectItem>
-					</SelectContent>
-				</Select>
-			</div>
+				<div className="flex flex-col gap-1.5">
+					<Label className="text-xs">Granularity</Label>
+					<Select
+						value={granularity}
+						onValueChange={(v) => setGranularity(v as PlacementGranularity)}
+					>
+						<SelectTrigger className="w-full">
+							<SelectValue />
+						</SelectTrigger>
+						<SelectContent>
+							<SelectItem value="line">Line by line</SelectItem>
+							<SelectItem value="word">Word by word</SelectItem>
+						</SelectContent>
+					</Select>
+				</div>
 
-			<label className="flex items-center gap-2 text-xs">
-				<input
-					type="checkbox"
-					checked={strobe}
-					onChange={(e) => setStrobe(e.target.checked)}
-				/>
-				Fadi-color strobe (preview)
-			</label>
+				<label className="flex items-center gap-2 text-xs">
+					<input
+						type="checkbox"
+						checked={strobe}
+						onChange={(e) => setStrobe(e.target.checked)}
+					/>
+					Fadi-color strobe (preview)
+				</label>
 
-			<div className="text-muted-foreground text-xs">
-				{song ? (
-					<>
-						{cueCount} {granularity === "word" ? "words" : "lines"} ·{" "}
-						{song.lyrics.length} lyric lines · {song.tempo.bpm} BPM
-						{song.key ? ` · ${song.key}` : ""}
-					</>
-				) : (
-					"No song loaded."
-				)}
-			</div>
+				<div className="text-muted-foreground text-xs">
+					{song ? (
+						<>
+							{cueCount} {granularity === "word" ? "words" : "lines"} ·{" "}
+							{song.lyrics.length} lyric lines · {song.tempo.bpm} BPM
+							{song.key ? ` · ${song.key}` : ""}
+						</>
+					) : (
+						"No song loaded."
+					)}
+				</div>
 
-			<Button onClick={handlePlace} disabled={!song || cueCount === 0}>
-				Place lyrics on timeline
-			</Button>
-			{placedTrackId ? (
-				<p className="text-muted-foreground text-xs">
-					Placed {cueCount} text elements on a new track.
-				</p>
-			) : null}
+				<div className="flex flex-col gap-2">
+					<Button
+						className="w-full"
+						onClick={handlePlace}
+						disabled={!song || cueCount === 0}
+					>
+						Place lyrics on timeline
+					</Button>
+					{placedTrackId ? (
+						<p className="text-muted-foreground text-xs">
+							Placed {cueCount} text elements on a new track.
+						</p>
+					) : null}
 
-			<Button variant="outline" onClick={handleMarkBeats} disabled={!song}>
-				Mark beats on timeline
-			</Button>
-			{markedBeats !== null ? (
-				<p className="text-muted-foreground text-xs">
-					{markedBeats > 0
-						? `Marked ${markedBeats} downbeats as bookmarks.`
-						: "Beats already marked."}
-				</p>
-			) : null}
+					<Button
+						variant="outline"
+						className="w-full"
+						onClick={handleMarkBeats}
+						disabled={!song}
+					>
+						Mark beats on timeline
+					</Button>
+					{markedBeats !== null ? (
+						<p className="text-muted-foreground text-xs">
+							{markedBeats > 0
+								? `Marked ${markedBeats} downbeats as bookmarks.`
+								: "Beats already marked."}
+						</p>
+					) : null}
+				</div>
 
-			<div className="border-t pt-3">
-				<Button
-					variant="secondary"
-					className="w-full"
-					onClick={handleBake}
-					disabled={!song || baking}
-				>
-					{baking ? "Baking…" : "Bake transparent lyric .mov (native)"}
-				</Button>
+				<div className="mt-auto border-t pt-4">
+					<Button
+						variant="secondary"
+						className="w-full"
+						onClick={handleBake}
+						disabled={!song || baking}
+					>
+						{baking ? "Baking…" : "Bake transparent lyric .mov (native)"}
+					</Button>
 
-				{bake.status !== "idle" ? (
-					<div className="mt-2 text-xs">
-						<div className="text-muted-foreground">
-							{bake.status} · {Math.round(bake.progress * 100)}%
-							{bake.message ? ` · ${bake.message}` : ""}
-						</div>
-						{bake.outPath ? (
-							<div className="mt-1 break-all text-green-600">
-								→ {bake.outPath}
+					{bake.status !== "idle" ? (
+						<div className="mt-2.5 text-xs">
+							<div className="text-muted-foreground">
+								{bake.status} · {Math.round(bake.progress * 100)}%
+								{bake.message ? ` · ${bake.message}` : ""}
 							</div>
-						) : null}
-						{bake.error ? (
-							<div className="mt-1 break-all text-red-600">{bake.error}</div>
-						) : null}
-					</div>
-				) : null}
+							{bake.outPath ? (
+								<div className="text-constructive mt-1 break-all">
+									→ {bake.outPath}
+								</div>
+							) : null}
+							{bake.error ? (
+								<div className="text-destructive mt-1 break-all">
+									{bake.error}
+								</div>
+							) : null}
+						</div>
+					) : null}
+				</div>
 			</div>
 		</div>
 	);

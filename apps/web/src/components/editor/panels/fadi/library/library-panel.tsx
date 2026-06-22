@@ -4,7 +4,7 @@ import { useCallback, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
-import { cn } from "@/utils/ui";
+import { FadiPanelHeader } from "@/components/editor/panels/fadi/fadi-panel-header";
 import { getLibraryClient } from "./library-client";
 import { LibraryFilters } from "./library-filters";
 import { LibraryItem } from "./library-item";
@@ -189,37 +189,42 @@ function Header({
 	onReindex: () => void;
 }) {
 	return (
-		<div className="flex items-center justify-between border-b px-2 py-1.5">
-			<div className="flex flex-col">
-				<span className="text-sm font-medium">Fadi Library</span>
-				<span className="text-muted-foreground text-[0.65rem]">
+		<FadiPanelHeader
+			title="Fadi Library"
+			bordered
+			subtitle={
+				<>
 					{total} assets · {online} root{online === 1 ? "" : "s"} online
 					{backend ? ` · ${backend}` : ""}
-				</span>
-			</div>
-			<Button
-				size="sm"
-				variant="ghost"
-				onClick={onReindex}
-				disabled={reindexing}
-				className="h-7 text-xs"
-			>
-				{reindexing ? <Spinner className="size-3" /> : "Reindex"}
-			</Button>
-		</div>
+				</>
+			}
+			actions={
+				<Button
+					size="sm"
+					variant="ghost"
+					onClick={onReindex}
+					disabled={reindexing}
+					className="h-7 text-xs"
+				>
+					{reindexing ? <Spinner className="size-3" /> : "Reindex"}
+				</Button>
+			}
+		/>
 	);
 }
 
 function EmptyState({ hasFilters }: { hasFilters: boolean }) {
 	return (
-		<div className="text-muted-foreground flex h-32 flex-col items-center justify-center gap-1 text-center text-xs">
-			<span className="text-2xl opacity-40">∅</span>
-			<p>
-				{hasFilters
-					? "No assets match these filters."
-					: "No assets indexed yet."}
+		<div className="text-muted-foreground flex h-full flex-col items-center justify-center gap-2 px-6 text-center">
+			<span className="text-3xl opacity-40">∅</span>
+			<p className="text-sm font-medium">
+				{hasFilters ? "No matches" : "No assets indexed yet"}
 			</p>
-			{!hasFilters && <p>Run a reindex to scan your roots.</p>}
+			<p className="max-w-xs text-xs leading-relaxed">
+				{hasFilters
+					? "Nothing matches these filters — try clearing them."
+					: "Run a reindex to scan your Fadi roots for loops, overlays, and clips."}
+			</p>
 		</div>
 	);
 }
