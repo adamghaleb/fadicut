@@ -131,6 +131,142 @@ export function rampToBridgePayload(
 	};
 }
 
+// ── blob_track (engine: fadi_blob_track) ─────────────────────────────────────
+
+export type BlobShape = "square" | "rounded" | "circle";
+export type BlobFollow = "subject" | "center" | "motion";
+
+export interface BlobTrackEffectParams {
+	type: "blob_track";
+	engine: "fadi_blob_track";
+	/** Reticle glyph (the micrographic square is the signature look). */
+	shape: BlobShape;
+	/** Hex that tints the whole pass to one Fadi color (null = 7-color per-id palette). */
+	color?: string | null;
+	/** What the blob rides: the tracked subject, frame center, or motion trails. */
+	follow: BlobFollow;
+	/** Beat-synced reticle/cage pops. */
+	beatReact: boolean;
+	/** Free-form knobs the blob engine understands. */
+	params: {
+		/** Max feature points the tracker follows. */
+		maxFeatures?: number;
+		/** Reseed dying corners every N frames. */
+		reseedEvery?: number;
+		/** Max reticles drawn per frame. */
+		maxReticles?: number;
+		/** Synth beat grid from this bpm when no explicit beat times. */
+		bpm?: number;
+		[k: string]: number | string | boolean | undefined;
+	};
+}
+
+export function defaultBlobTrackEffect(): BlobTrackEffectParams {
+	return {
+		type: "blob_track",
+		engine: "fadi_blob_track",
+		shape: "square",
+		color: null,
+		follow: "subject",
+		beatReact: true,
+		params: {
+			maxFeatures: 140,
+			reseedEvery: 24,
+			maxReticles: 26,
+		},
+	};
+}
+
+/**
+ * Serialize a BlobTrackEffectParams into the Bridge `render_blob_track` job payload shape.
+ * (camelCase editor params → snake_case contract/payload, with window targeting.)
+ */
+export function blobTrackToBridgePayload(
+	b: BlobTrackEffectParams,
+	io: { src: string; out?: string; beatsSec?: number[] },
+) {
+	return {
+		src: io.src,
+		out: io.out,
+		shape: b.shape,
+		color: b.color ?? null,
+		follow: b.follow,
+		beat_react: b.beatReact,
+		beats_sec: io.beatsSec,
+		bpm: b.params.bpm,
+		max_features: b.params.maxFeatures,
+		reseed_every: b.params.reseedEvery,
+		max_reticles: b.params.maxReticles,
+	};
+}
+
+// ── micrographics (engine: fadi_micrographics) ───────────────────────────────
+
+/**
+ * Editor-side mirror of the FROZEN Python contract `MicrographicsEffect`
+ * (contracts/fadi_contracts/fadi_edl.py): the FadiFiles "micrographics on every image"
+ * treatment — hairline readouts, registration marks, micro counters, tick strips composited
+ * over a clip. Baked natively by bridge/render/micrographics.py from the SAME params.
+ */
+export type MicrographicsDensity = "sparse" | "medium" | "dense";
+
+/** Panel tint modes the native engine understands (compile_panel → tint_fragment). */
+export type MicrographicsTint = "fadi" | "rainbow-3s" | "black" | "white";
+
+export interface MicrographicsEffectParams {
+	type: "micrographics";
+	engine: "fadi_micrographics";
+	/** How many HUD panels get scattered: sparse=1, medium=2, dense=4. */
+	density: MicrographicsDensity;
+	/** Fadi colors for the micro elements (drives the per-panel `fadi` tint cycle). */
+	palette: string[];
+	/** Deterministic layout seed (preset choice, slot shuffle, tint + color pick). */
+	seed?: number | null;
+	/** Escape-hatch knobs the native engine reads. */
+	params: {
+		/** Force a single tint across every panel (else auto-weighted per panel). */
+		tint?: MicrographicsTint;
+		/** Explicit preset filenames (overrides the density auto-pick). */
+		presets?: string[];
+		/** Override the panel count (else derived from density). */
+		panels?: number;
+		[k: string]: number | string | boolean | string[] | undefined;
+	};
+}
+
+export function defaultMicrographicsEffect(): MicrographicsEffectParams {
+	return {
+		type: "micrographics",
+		engine: "fadi_micrographics",
+		density: "medium",
+		palette: [...FADI_PALETTE],
+		seed: 7,
+		params: {},
+	};
+}
+
+/**
+ * Serialize a MicrographicsEffectParams into the Bridge `render_micrographics` job
+ * payload shape (camelCase editor params → snake_case contract/payload).
+ */
+export function micrographicsToBridgePayload(
+	m: MicrographicsEffectParams,
+	io: { src: string; out?: string },
+) {
+	return {
+		src: io.src,
+		out: io.out,
+		density: m.density,
+		palette: m.palette,
+		seed: m.seed ?? null,
+		params: {
+			tint: m.params.tint,
+			presets: m.params.presets,
+			panels: m.params.panels,
+		},
+	};
+}
+
 /** Serialize a GradeEffectParams into the Bridge `render_grade` job payload shape. */
 export function gradeToBridgePayload(
 	g: GradeEffectParams,

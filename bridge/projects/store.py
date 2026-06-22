@@ -98,29 +98,51 @@ class ProjectStore:
     # ── root resolution ───────────────────────────────────────────────────────
 
     def drive_available(self) -> bool:
-        """True when the drive root is a mounted, writable directory."""
+        """True when the drive root is a mounted, writable directory.
+
+        Checks the mount point itself (not the FADICUT-PROJECTS subdir, which may not
+        exist yet — it is created on demand by `resolve_root`).
+        """
         try:
             return self._drive_root.is_dir() and os.access(self._drive_root, os.W_OK)
         except OSError:
             return False
+
+    @property
+    def drive_projects_dir(self) -> Path:
+        """The intended on-drive projects root (whether or not it currently exists)."""
+        return self._drive_root / _DRIVE_PROJECTS_DIRNAME
 
     def resolve_root(self) -> tuple[Path, str]:
         """Return (root_path, location_tag). location_tag ∈ {'explicit','drive','fallback'}.
 
         Re-evaluated on every call so mount/unmount is picked up live. Ensures the chosen
         root exists (mkdir -p) before returning.
+
+        Drive preference is *effective*: when the Seagate is mounted we actually create and
+        use `<drive>/FADICUT-PROJECTS`. We only fall back to `~/Documents/fadicut-projects`
+        when the drive is genuinely absent, or when creating/writing the on-drive projects
+        dir fails (read-only mount, full disk, permissions) — never silently while a healthy
+        drive is present.
         """
         if self._explicit_root is not None:
             root = self._explicit_root
-            tag = "explicit"
-        elif self.drive_available():
-            root = self._drive_root / _DRIVE_PROJECTS_DIRNAME
-            tag = "drive"
-        else:
-            root = self._fallback_root
-            tag = "fallback"
+            root.mkdir(parents=True, exist_ok=True)
+            return root.resolve(), "explicit"
+
+        if self.drive_available():
+            drive_root = self.drive_projects_dir
+            try:
+                drive_root.mkdir(parents=True, exist_ok=True)
+                # Confirm it is actually a usable, writable directory before committing to it.
+                if drive_root.is_dir() and os.access(drive_root, os.W_OK):
+                    return drive_root.resolve(), "drive"
+            except OSError:
+                pass  # drive present but unwritable — fall through to the local fallback
+
+        root = self._fallback_root
         root.mkdir(parents=True, exist_ok=True)
-        return root.resolve(), tag
+        return root.resolve(), "fallback"
 
     def _project_dir(self, project_id: str, *, create: bool = False) -> tuple[Path, str]:
         _validate_id(project_id)

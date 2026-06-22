@@ -5,6 +5,7 @@ from .jobs import router as jobs_router
 from .media import router as media_router
 from .projects import router as projects_router
 from .render import router as render_router
+from .staging import router as staging_router
 
 __all__ = [
     "health_router",
@@ -12,4 +13,5 @@ __all__ = [
     "media_router",
     "projects_router",
     "render_router",
+    "staging_router",
 ]

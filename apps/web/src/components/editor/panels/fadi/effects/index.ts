@@ -25,12 +25,28 @@ export {
 export type { RampEffectPanelProps } from "./ramp-effect";
 
 export {
+	BlobTrackEffectPanel,
+	default as BlobTrackEffectPanelDefault,
+} from "./blob-track-effect";
+export type { BlobTrackEffectPanelProps } from "./blob-track-effect";
+
+export {
+	MicrographicsEffectPanel,
+	default as MicrographicsEffectPanelDefault,
+} from "./micrographics-effect";
+export type { MicrographicsEffectPanelProps } from "./micrographics-effect";
+
+export {
 	FADI_PALETTE,
 	SIGNATURE_CURVE,
 	defaultGradeEffect,
 	defaultRampEffect,
+	defaultBlobTrackEffect,
+	defaultMicrographicsEffect,
 	gradeToBridgePayload,
 	rampToBridgePayload,
+	blobTrackToBridgePayload,
+	micrographicsToBridgePayload,
 } from "./types";
 export type {
 	GradeEffectParams,
@@ -39,6 +55,12 @@ export type {
 	RampMode,
 	BezierCurve,
 	MotionBlurParams,
+	BlobTrackEffectParams,
+	BlobShape,
+	BlobFollow,
+	MicrographicsEffectParams,
+	MicrographicsDensity,
+	MicrographicsTint,
 } from "./types";
 
 export { createGradePreview } from "./grade-preview";

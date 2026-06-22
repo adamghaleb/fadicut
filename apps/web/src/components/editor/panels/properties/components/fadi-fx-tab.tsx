@@ -18,15 +18,23 @@ import type { ImageElement, VideoElement } from "@/timeline";
 import {
 	GradeEffectPanel,
 	RampEffectPanel,
+	MicrographicsEffectPanel,
+	BlobTrackEffectPanel,
 	defaultGradeEffect,
 	defaultRampEffect,
+	defaultMicrographicsEffect,
+	defaultBlobTrackEffect,
 	type GradeEffectParams,
 	type RampEffectParams,
+	type MicrographicsEffectParams,
+	type BlobTrackEffectParams,
 } from "@/components/editor/panels/fadi/effects";
 
 /** Namespaced param keys the Fadi effects persist under on element.params. */
 const GRADE_KEY = "fadi:grade";
 const RAMP_KEY = "fadi:ramp";
+const MICRO_KEY = "fadi:micrographics";
+const BLOB_KEY = "fadi:blob_track";
 
 function parseStored<T>(raw: unknown): T | undefined {
 	if (typeof raw !== "string" || raw.length === 0) return undefined;
@@ -52,6 +60,14 @@ export function FadiFxTab({
 	);
 	const ramp = useMemo(
 		() => parseStored<RampEffectParams>(element.params[RAMP_KEY]),
+		[element.params],
+	);
+	const micro = useMemo(
+		() => parseStored<MicrographicsEffectParams>(element.params[MICRO_KEY]),
+		[element.params],
+	);
+	const blob = useMemo(
+		() => parseStored<BlobTrackEffectParams>(element.params[BLOB_KEY]),
 		[element.params],
 	);
 
@@ -83,12 +99,20 @@ export function FadiFxTab({
 		(next: RampEffectParams) => persist(RAMP_KEY, next),
 		[persist],
 	);
+	const onMicroChange = useCallback(
+		(next: MicrographicsEffectParams) => persist(MICRO_KEY, next),
+		[persist],
+	);
+	const onBlobChange = useCallback(
+		(next: BlobTrackEffectParams) => persist(BLOB_KEY, next),
+		[persist],
+	);
 
 	return (
 		<div className="flex flex-col">
 			<FadiPanelHeader
 				title="Fadi FX"
-				subtitle="Native-baked grade + speed ramp."
+				subtitle="Native-baked grade · ramp · micrographics · blob-track."
 				bordered
 			/>
 			<div className="flex flex-col gap-2 p-2">
@@ -99,6 +123,14 @@ export function FadiFxTab({
 				<RampEffectPanel
 					value={ramp ?? defaultRampEffect()}
 					onChange={onRampChange}
+				/>
+				<MicrographicsEffectPanel
+					value={micro ?? defaultMicrographicsEffect()}
+					onChange={onMicroChange}
+				/>
+				<BlobTrackEffectPanel
+					value={blob ?? defaultBlobTrackEffect()}
+					onChange={onBlobChange}
 				/>
 			</div>
 		</div>
