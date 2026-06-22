@@ -37,18 +37,11 @@ function ticksToSec(time: MediaTime | undefined): number {
 	}
 }
 
-/** One EDL element entry — structural, seconds-based, with the raw element kept for fidelity. */
-interface EdlElement {
-	id: string;
-	type: string;
-	name: string;
-	start_sec: number;
-	duration_sec: number;
-	trim_start_sec: number;
-	trim_end_sec: number;
-	/** Opaque passthrough of the original element so nothing is lost on the drive copy. */
-	raw: unknown;
-}
+/** One EDL element — must satisfy the frozen contract's discriminated FadiElement
+ * (video/image require media_id, graphic requires definition_id, …). Unsupported editor
+ * types (e.g. effect) return null and are dropped; the full editor state still round-trips
+ * via the IndexedDB copy. */
+type EdlElement = Record<string, unknown>;
 
 interface EdlTrack {
 	id: string;
@@ -58,17 +51,49 @@ interface EdlTrack {
 	elements: EdlElement[];
 }
 
-function serializeElement(el: TimelineElement): EdlElement {
-	return {
+function serializeElement(el: TimelineElement): EdlElement | null {
+	const e = el as Record<string, unknown>;
+	const base = {
 		id: el.id,
-		type: el.type,
 		name: el.name,
 		start_sec: ticksToSec(el.startTime),
 		duration_sec: ticksToSec(el.duration),
 		trim_start_sec: ticksToSec(el.trimStart),
 		trim_end_sec: ticksToSec(el.trimEnd),
-		raw: el,
 	};
+	switch (el.type) {
+		case "video":
+			return { ...base, type: "video", media_id: String(e.mediaId ?? "") };
+		case "image":
+			return { ...base, type: "image", media_id: String(e.mediaId ?? "") };
+		case "audio":
+			return {
+				...base,
+				type: "audio",
+				media_id: e.mediaId ? String(e.mediaId) : undefined,
+				source_url: e.sourceUrl ? String(e.sourceUrl) : undefined,
+			};
+		case "text":
+			return {
+				...base,
+				type: "text",
+				text: typeof e.text === "string" ? e.text : "",
+			};
+		case "sticker":
+			return {
+				...base,
+				type: "graphic",
+				definition_id: String(e.stickerId ?? "sticker"),
+			};
+		case "graphic":
+			return {
+				...base,
+				type: "graphic",
+				definition_id: String(e.definitionId ?? ""),
+			};
+		default:
+			return null; // not in the contract element union — preserved in the IndexedDB copy
+	}
 }
 
 function serializeTrack(
@@ -80,7 +105,9 @@ function serializeTrack(
 		name: track.name,
 		type: track.type,
 		role,
-		elements: track.elements.map((el) => serializeElement(el)),
+		elements: track.elements
+			.map((el) => serializeElement(el))
+			.filter((e): e is EdlElement => e !== null),
 	};
 }
 
@@ -114,15 +141,17 @@ export function projectToEdl({ project }: { project: TProject }): FadiEDL {
 		schema_version: EDL_SCHEMA_VERSION,
 		project_id: project.metadata.id,
 		name: project.metadata.name,
-		song_id: null,
+		song_id: undefined,
 		render: {
-			fps: project.settings?.fps ?? null,
-			canvas: project.settings?.canvasSize ?? null,
-			current_scene_id: project.currentSceneId ?? null,
+			// Contract RenderSpec.fps is a required int — never null. Fall back to 30.
+			fps:
+				typeof project.settings?.fps === "number" ? project.settings.fps : 30,
+			current_scene_id: project.currentSceneId ?? undefined,
 			// Lossless editor state for an exact future reconstruction off the drive copy.
+			// (Extra keys are ignored by the strict contract but preserved in the stored JSON.)
 			editor_scenes: scenes,
-			editor_settings: project.settings ?? null,
-			editor_version: project.version ?? null,
+			editor_settings: project.settings ?? undefined,
+			editor_version: project.version ?? undefined,
 		},
 		tracks,
 		beat_markers_sec: bookmarkSecs.length ? bookmarkSecs : undefined,
