@@ -12,11 +12,15 @@ import {
 	Settings01Icon,
 	SlidersHorizontalIcon,
 	ColorsIcon,
+	MusicNote01Icon,
+	LibraryIcon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react";
 
 export const TAB_KEYS = [
 	"media",
+	"lyrics",
+	"library",
 	"sounds",
 	"text",
 	"stickers",
@@ -39,6 +43,14 @@ export const tabs = {
 	media: {
 		icon: createHugeiconsIcon({ icon: Folder03Icon }),
 		label: "Media",
+	},
+	lyrics: {
+		icon: createHugeiconsIcon({ icon: MusicNote01Icon }),
+		label: "Lyrics",
+	},
+	library: {
+		icon: createHugeiconsIcon({ icon: LibraryIcon }),
+		label: "Fadi Library",
 	},
 	sounds: {
 		icon: createHugeiconsIcon({ icon: HeadphonesIcon }),
