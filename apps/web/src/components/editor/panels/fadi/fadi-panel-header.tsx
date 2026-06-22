@@ -11,6 +11,33 @@
 
 import type { ReactNode } from "react";
 import { cn } from "@/utils/ui";
+import { useBridgeStatus } from "@/components/editor/panels/fadi/use-bridge-status";
+
+/** A small dot reflecting the local Fadi Bridge connection. */
+export function BridgeStatusDot() {
+	const status = useBridgeStatus();
+	const color =
+		status === "online"
+			? "bg-constructive"
+			: status === "offline"
+				? "bg-destructive"
+				: "bg-muted-foreground";
+	const label =
+		status === "online"
+			? "Bridge connected"
+			: status === "offline"
+				? "Bridge offline — run bridge/run.sh"
+				: "Connecting to Bridge…";
+	return (
+		<span
+			className="flex items-center gap-1.5 text-[0.65rem] text-muted-foreground"
+			title={label}
+		>
+			<span className={cn("size-1.5 rounded-full", color)} />
+			{status === "online" ? "Bridge" : status === "offline" ? "Offline" : "…"}
+		</span>
+	);
+}
 
 /** The Fadi brand spectrum, used only as a restrained hairline accent. */
 export const FADI_SPECTRUM = [
@@ -72,9 +99,10 @@ export function FadiPanelHeader({
 					</p>
 				) : null}
 			</div>
-			{actions ? (
-				<div className="flex shrink-0 items-center">{actions}</div>
-			) : null}
+			<div className="flex shrink-0 items-center gap-2">
+				{actions}
+				<BridgeStatusDot />
+			</div>
 		</div>
 	);
 }
