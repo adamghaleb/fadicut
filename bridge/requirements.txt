@@ -1,0 +1,12 @@
+# Fadi Bridge runtime deps. The frozen contract package is installed separately:
+#   pip install -e ../contracts
+fastapi>=0.115
+uvicorn[standard]>=0.30
+pydantic>=2.6
+sse-starlette>=2.1
+python-multipart>=0.0.9
+
+# Batch D — native grade baker (bridge/render/fadi_grade.py) frame-walk.
+# (speedramp.py wraps the external engine + RIFE; no extra Python deps for ramp.)
+numpy>=1.26
+pillow>=10.0

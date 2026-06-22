@@ -1,0 +1,7 @@
+# Fadi Bridge — runtime + generated artifacts
+.venv/
+__pycache__/
+*.pyc
+data/            # asset catalog DB + generated proxies (batch E)
+.verify/
+*.egg-info/

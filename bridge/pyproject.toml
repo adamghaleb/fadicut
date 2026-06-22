@@ -1,0 +1,24 @@
+[project]
+name = "fadi-bridge"
+version = "0.1.0"
+description = "Fadi Bridge — local FastAPI service that owns files, the M2 GPU, and the native Fadi tools. The OpenCut editor talks to it; it never runs in the browser."
+requires-python = ">=3.10"
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.30",
+    "pydantic>=2.6",
+    "sse-starlette>=2.1",
+    "python-multipart>=0.0.9",
+    # The frozen contract package (installed editable in dev: pip install -e ../contracts)
+    "fadi-contracts>=1.0.0",
+]
+
+[project.optional-dependencies]
+dev = ["httpx>=0.27", "pytest>=8.0"]
+
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["bridge*", "api*", "jobs*", "assets*", "render*"]
