@@ -27,7 +27,7 @@ from typing import Annotated, Literal, Optional, Union
 
 from pydantic import BaseModel, Field
 
-SCHEMA_VERSION = "1.0.0"
+SCHEMA_VERSION = "1.1.0"
 
 
 # ───────────────────────── effects (discriminated by `type`) ─────────────────────────
@@ -102,6 +102,32 @@ class MorphEffect(BaseModel):
     beat_cut: bool = True
 
 
+class MicrographicsEffect(BaseModel):
+    """Fadi micrographic overlay treatment (the FadiFiles 'micrographics on every image'
+    rule): readouts, hairline grids, registration marks, micro-labels composited over a
+    clip. Baked natively from the fadifiles micrographics engine."""
+
+    type: Literal["micrographics"] = "micrographics"
+    engine: Literal["fadi_micrographics"] = "fadi_micrographics"
+    density: Literal["sparse", "medium", "dense"] = "medium"
+    palette: list[str] = Field(default_factory=list, description="Fadi colors for the micro elements.")
+    seed: Optional[int] = Field(None, description="Deterministic layout seed.")
+    params: dict = Field(default_factory=dict)
+
+
+class BlobTrackEffect(BaseModel):
+    """Square micrographic blob that tracks the subject across the clip (the FadiFiles
+    blob-tracking treatment). Baked natively from the music-video blob engine."""
+
+    type: Literal["blob_track"] = "blob_track"
+    engine: Literal["fadi_blob_track"] = "fadi_blob_track"
+    shape: Literal["square", "rounded", "circle"] = "square"
+    color: Optional[str] = Field(None, description="Hex of the blob fill / outline.")
+    follow: Literal["subject", "center", "motion"] = "subject"
+    beat_react: bool = True
+    params: dict = Field(default_factory=dict)
+
+
 class GenericEffect(BaseModel):
     """Pass-through for OpenCut's own native effects we don't special-case."""
 
@@ -112,7 +138,10 @@ class GenericEffect(BaseModel):
 
 
 FadiEffect = Annotated[
-    Union[GradeEffect, RampEffect, LyricEffect, StrobeEffect, OverlayEffect, MorphEffect, GenericEffect],
+    Union[
+        GradeEffect, RampEffect, LyricEffect, StrobeEffect, OverlayEffect, MorphEffect,
+        MicrographicsEffect, BlobTrackEffect, GenericEffect,
+    ],
     Field(discriminator="type"),
 ]
 
