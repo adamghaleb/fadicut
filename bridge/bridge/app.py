@@ -13,12 +13,12 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from api import health_router, jobs_router, media_router, projects_router
+from api import health_router, jobs_router, media_router, projects_router, render_router
 from assets import assets_router, get_watcher
 from bridge import __version__
 from bridge.config import get_settings
 from jobs import get_queue
-from render import meandu, register_batch_d_runners
+from render import meandu, orchestrator, register_batch_d_runners
 from render.beatgrid import beatgrid_router, register_beatgrid_runners
 
 log = logging.getLogger("fadi.bridge")
@@ -31,6 +31,7 @@ def _register_runners(q) -> None:
         ("lyric (meandu)", lambda: meandu.register(q)),
         ("beat detection", register_beatgrid_runners),
         ("grade + speed-ramp", register_batch_d_runners),
+        ("export orchestrator", lambda: orchestrator.register(q)),
     ]
     for name, fn in registrations:
         try:
@@ -97,6 +98,7 @@ def create_app() -> FastAPI:
     app.include_router(projects_router)  # batch G — drive-backed projects
     app.include_router(assets_router)    # batch E — asset library
     app.include_router(beatgrid_router)  # batch C — beat detection
+    app.include_router(render_router)    # issue #4 — export-bake orchestration
     return app
 
 

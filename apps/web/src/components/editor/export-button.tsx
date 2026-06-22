@@ -34,6 +34,13 @@ import {
 } from "@/components/section";
 import { useEditor } from "@/editor/use-editor";
 import { DEFAULT_EXPORT_OPTIONS } from "@/export/defaults";
+import { buildRenderEdl } from "./build-render-edl";
+import {
+	bridgeMediaUrl,
+	submitRender,
+	subscribeRenderProgress,
+	type RenderResult,
+} from "./render-bridge-client";
 
 function isExportFormat(value: string): value is ExportFormat {
 	return EXPORT_FORMAT_VALUES.some((formatValue) => formatValue === value);
@@ -144,6 +151,94 @@ function ExportPopover({
 		editor.project.cancelExport();
 	};
 
+	// ── native Fadi-FX export (Bridge orchestrator, issue #4) ──────────────────
+	const [fadiState, setFadiState] = useState<{
+		status: "idle" | "running" | "done" | "error";
+		progress: number;
+		message: string;
+		result: RenderResult | null;
+		error: string | null;
+	}>({
+		status: "idle",
+		progress: 0,
+		message: "",
+		result: null,
+		error: null,
+	});
+
+	const handleFadiExport = async () => {
+		if (!activeProject) return;
+		setFadiState({
+			status: "running",
+			progress: 0,
+			message: "building EDL…",
+			result: null,
+			error: null,
+		});
+		try {
+			const project = editor.project.getActive();
+			const assets = editor.media.getAssets();
+			const { width, height } = project.settings.canvasSize;
+			const songId =
+				(project.metadata as unknown as { songId?: string }).songId ??
+				undefined;
+			const { edl } = buildRenderEdl({
+				project,
+				assets,
+				width,
+				height,
+				songId,
+			});
+
+			const job = await submitRender({
+				request: { edl, name: project.metadata.name },
+			});
+
+			subscribeRenderProgress({
+				jobId: job.id,
+				onProgress: (evt) =>
+					setFadiState((s) => ({
+						...s,
+						progress: evt.progress,
+						message: evt.message,
+					})),
+				onDone: (evt) => {
+					if (evt.status === "succeeded" && evt.result) {
+						setFadiState({
+							status: "done",
+							progress: 1,
+							message: "done",
+							result: evt.result,
+							error: null,
+						});
+					} else {
+						setFadiState({
+							status: "error",
+							progress: evt.progress,
+							message: evt.message,
+							result: null,
+							error: evt.error ?? `render ${evt.status}`,
+						});
+					}
+				},
+				onError: (err) =>
+					setFadiState((s) => ({
+						...s,
+						status: "error",
+						error: err.message,
+					})),
+			});
+		} catch (err) {
+			setFadiState({
+				status: "error",
+				progress: 0,
+				message: "",
+				result: null,
+				error: err instanceof Error ? err.message : String(err),
+			});
+		}
+	};
+
 	return (
 		<PopoverContent className="bg-background mr-4 flex w-80 flex-col p-0">
 			{exportResult && !exportResult.success ? (
@@ -252,11 +347,66 @@ function ExportPopover({
 									</Section>
 								</div>
 
-								<div className="p-3 pt-0">
+								<div className="flex flex-col gap-2 p-3 pt-0">
 									<Button onClick={handleExport} className="w-full gap-2">
 										<Download className="size-4" />
 										Export
 									</Button>
+									<Button
+										variant="outline"
+										onClick={handleFadiExport}
+										disabled={fadiState.status === "running"}
+										className="w-full gap-2"
+									>
+										<Download className="size-4" />
+										Export with Fadi FX (native)
+									</Button>
+
+									{fadiState.status === "running" && (
+										<div className="flex flex-col gap-2 pt-1">
+											<div className="flex items-center justify-between">
+												<p className="text-muted-foreground text-xs">
+													{fadiState.message || "rendering…"}
+												</p>
+												<p className="text-muted-foreground text-xs">
+													{Math.round(fadiState.progress * 100)}%
+												</p>
+											</div>
+											<Progress
+												value={fadiState.progress * 100}
+												className="w-full"
+											/>
+										</div>
+									)}
+
+									{fadiState.status === "done" && fadiState.result && (
+										<div className="flex flex-col gap-1.5 pt-1">
+											<p className="text-constructive text-xs font-medium">
+												Native render complete · {fadiState.result.width}×
+												{fadiState.result.height} ·{" "}
+												{fadiState.result.duration_sec.toFixed(1)}s
+											</p>
+											<p className="text-muted-foreground text-[0.7rem]">
+												baked grade×{fadiState.result.baked.grade} · lyric×
+												{fadiState.result.baked.lyric}
+											</p>
+											<a
+												href={bridgeMediaUrl({
+													path: fadiState.result.out_path,
+												})}
+												download
+												className="text-primary text-xs underline"
+											>
+												Download {fadiState.result.out_path.split("/").pop()}
+											</a>
+										</div>
+									)}
+
+									{fadiState.status === "error" && (
+										<p className="text-destructive text-xs">
+											Native export failed: {fadiState.error}
+										</p>
+									)}
 								</div>
 							</>
 						)}
