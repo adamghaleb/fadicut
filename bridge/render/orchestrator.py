@@ -76,7 +76,7 @@ from .fadi_grade import bake_grade  # noqa: E402  — reuse, do not reimplement
 from .fadi_strobe import strobe_video  # noqa: E402
 from .fadishoot_overlays import bake_overlay  # noqa: E402
 from .meandu import SUPPORTED_SONG_IDS, bake_lyric_slice  # noqa: E402
-from .morphloop import bake_morph  # noqa: E402
+from .morphloop import bake_morph, has_prerendered_clips  # noqa: E402
 from .song_context_provider import load_song_context  # noqa: E402
 from .speedramp import bake_ramp  # noqa: E402
 
@@ -88,6 +88,13 @@ if not Path(FFMPEG).exists():  # graceful fallback so a CI box without the cella
     FFPROBE = shutil.which("ffprobe") or "ffprobe"
 
 ProgressFn = Callable[[float, str], Awaitable[None]]
+
+# Time budget (seconds) for a single lyric bake inside an export. The meandu engine's
+# library preload is a fixed multi-minute startup; bake_lyric_slice caches its render so
+# repeat slices are instant, but the first cold render can exceed a short poll window. If
+# the bake doesn't finish inside this budget the lyric is a graceful no-op (the export
+# still succeeds without it) rather than hanging the whole job.
+LYRIC_BAKE_BUDGET_SEC = 600.0
 
 
 # ───────────────────────── small ffmpeg utils ─────────────────────────
@@ -405,12 +412,27 @@ async def _overlay_handler(ctx: ClipContext, fx: OverlayEffect, progress: Progre
     if _is_image(ctx.current):
         return  # overlays detect beats from clip audio — needs a video
     over = ctx.stage("overlay")
+    # The wrapped engine scatters flashes over a numeric START-END window and derives
+    # beats from the input's audio. Base-prep strips audio (`-an`), so we (a) pass the
+    # clip's actual [0, duration] window as a numeric segment (not "full"/"3s", which the
+    # engine can't split), and (b) hand it the original source as an audio donor so beat
+    # detection works against the real performance audio.
+    el = ctx.element
+    dur = float(getattr(el, "duration_sec", 0.0) or 0.0)
+    seg = f"0-{dur:.3f}" if dur > 0.05 else "full"
+    audio_src: Optional[Path] = None
+    try:
+        audio_src = _resolve_media_path(el)
+    except (FileNotFoundError, OSError):
+        audio_src = None
     await _to_thread(
         bake_overlay, ctx.current, over,
         category=fx.category,
         asset_id=fx.asset_id,
         beat_sync=fx.beat_sync,
         coverage=fx.coverage,
+        segment=seg,
+        audio_src=audio_src,
     )
     norm = ctx.stage("overlay_norm")
     await _to_thread(_renormalize, over, norm, width=ctx.width, height=ctx.height, fps=ctx.fps)
@@ -428,16 +450,28 @@ async def _morph_handler(ctx: ClipContext, fx: MorphEffect, progress: ProgressFn
     await progress(0.0, "morph bake")
     if not ctx.song_id or len(fx.target_media_ids) not in (4, 8):
         return  # documented no-op: morph needs a song + 4/8 image targets
+    params = getattr(ctx.element, "params", {}) or {}
+    # Export NEVER runs AI image-to-video generation (network + minutes). We force
+    # skip_generate=True and only proceed if the morphloop work dir already holds
+    # pre-rendered raw clips to reuse offline. Otherwise this is a graceful, documented
+    # no-op — the clip passes through unchanged and the export still succeeds.
+    skip_generate = bool(params.get("morph_skip_generate", True))
+    if skip_generate and not has_prerendered_clips(ctx.song_id):
+        await progress(1.0, "morph skipped (no pre-rendered clips — no-op)")
+        return
     images = _resolve_media_ids(ctx.element, list(fx.target_media_ids))
     out = ctx.stage("morph")
-    params = getattr(ctx.element, "params", {}) or {}
-    await _to_thread(
-        bake_morph,
-        song=ctx.song_id,
-        images=images,
-        out=out,
-        skip_generate=bool(params.get("morph_skip_generate", True)),
-    )
+    try:
+        await _to_thread(
+            bake_morph,
+            song=ctx.song_id,
+            images=images,
+            out=out,
+            skip_generate=skip_generate,
+        )
+    except Exception as e:  # noqa: BLE001 — optional effect must not abort the export
+        await progress(1.0, f"morph skipped (no-op): {type(e).__name__}")
+        return
     norm = ctx.stage("morph_norm")
     await _to_thread(_renormalize, out, norm, width=ctx.width, height=ctx.height, fps=ctx.fps)
     ctx.current = norm
@@ -456,14 +490,27 @@ async def _lyric_overlay_handler(ctx: ClipContext, fx: LyricEffect, progress: Pr
     await progress(0.0, "lyric bake")
     el = ctx.element
     ov_mov = ctx.stage("lyric", ".mov")
-    await _to_thread(
-        bake_lyric_slice,
-        song_id=song_id,
-        start_sec=getattr(el, "trim_start_sec", 0.0) + 0.0,
-        duration_sec=el.duration_sec,
-        out_path=ov_mov,
-        smoke_frames=ctx.smoke_frames,
-    )
+    # The meandu engine's library preload is a fixed multi-minute startup cost, so the
+    # first export render is slow; bake_lyric_slice caches the rendered mp4 to make later
+    # slices instant. Bound the bake with a generous budget here so an export never hangs
+    # on it — on timeout the lyric is a graceful no-op (clip passes through unchanged)
+    # rather than aborting the whole render.
+    budget = float(getattr(ctx, "lyric_budget_sec", 0.0) or LYRIC_BAKE_BUDGET_SEC)
+    try:
+        await asyncio.wait_for(
+            _to_thread(
+                bake_lyric_slice,
+                song_id=song_id,
+                start_sec=getattr(el, "trim_start_sec", 0.0) + 0.0,
+                duration_sec=el.duration_sec,
+                out_path=ov_mov,
+                smoke_frames=ctx.smoke_frames,
+            ),
+            timeout=budget,
+        )
+    except (asyncio.TimeoutError, Exception) as e:  # noqa: BLE001 — optional effect
+        await progress(1.0, f"lyric skipped (no-op): {type(e).__name__}")
+        return  # documented graceful no-op — export continues without this lyric overlay
     composited = ctx.stage("lyric_composite")
     await _to_thread(
         _overlay_lyric,

@@ -104,6 +104,19 @@ def _run(cmd: list[str], *, cwd: Optional[Path] = None) -> None:
         raise RuntimeError(f"command failed ({proc.returncode}): {cmd[0]} ...\n{tail}")
 
 
+# Persistent cache for rendered me&u mp4s. The engine's *startup* (library preload) is a
+# fixed multi-minute cost independent of frame count, so a cold render can't fit a short
+# poll window. We render once per (song, smoke_frames) and reuse the mp4 for every later
+# slice — turning subsequent lyric bakes into a sub-second ffmpeg trim+key.
+_CACHE_DIR = Path(tempfile.gettempdir()) / "fadi_meandu_cache"
+
+
+def _cache_path(song_id: str, smoke_frames: Optional[int]) -> Path:
+    tag = f"smoke{int(smoke_frames)}" if smoke_frames else "full"
+    safe = "".join(c if c.isalnum() else "-" for c in song_id)
+    return _CACHE_DIR / f"{safe}__{tag}.mp4"
+
+
 def _render_full_song(engine_root: Path, mp4_out: Path, *, smoke_frames: Optional[int]) -> None:
     """Drive the engine's argv entrypoint to render the full song to mp4_out.
 
@@ -123,6 +136,23 @@ def _render_full_song(engine_root: Path, mp4_out: Path, *, smoke_frames: Optiona
     if proc.returncode != 0:
         tail = (proc.stderr or proc.stdout or "").strip()[-2000:]
         raise RuntimeError(f"meandu engine render failed ({proc.returncode}):\n{tail}")
+
+
+def _render_full_song_cached(
+    engine_root: Path, mp4_out: Path, *, song_id: str, smoke_frames: Optional[int]
+) -> None:
+    """Render via cache: reuse a previously-rendered mp4 for (song_id, smoke_frames) if it
+    exists; otherwise render once and stash it. Copies the cached mp4 to ``mp4_out``."""
+    cache = _cache_path(song_id, smoke_frames)
+    if cache.exists() and cache.stat().st_size > 0:
+        shutil.copy2(cache, mp4_out)
+        return
+    _render_full_song(engine_root, mp4_out, smoke_frames=smoke_frames)
+    try:
+        cache.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(mp4_out, cache)
+    except OSError:
+        pass  # caching is best-effort
 
 
 def _slice_and_key_to_transparent_mov(
@@ -187,7 +217,7 @@ def bake_lyric_slice(
     out_mov = Path(out_path).expanduser()
 
     emit(0.05, "rendering meandu lyric engine ...")
-    _render_full_song(root, src_mp4, smoke_frames=smoke_frames)
+    _render_full_song_cached(root, src_mp4, song_id=song_id, smoke_frames=smoke_frames)
 
     emit(0.85, "slicing + keying to transparent .mov ...")
     _slice_and_key_to_transparent_mov(

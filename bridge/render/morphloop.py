@@ -54,6 +54,23 @@ def _workdir_for(song: str) -> Path:
     return HIGGSFIELD_ROOT / f"{_slug(song)}-loop"
 
 
+def has_prerendered_clips(song: str) -> bool:
+    """True if the morphloop work dir for `song` already holds pre-rendered raw clips that
+    a `--skip-generate` build can reuse offline. When False, an export must NOT fall
+    through to AI generation — the morph handler treats it as a graceful no-op instead.
+
+    The engine's build step reads its morph clips from ``<workdir>/raw/<tag>.mp4`` (or a
+    finished pass already sitting in ``<workdir>/final/``)."""
+    wd = _workdir_for(song)
+    raw = wd / "raw"
+    if raw.is_dir() and any(raw.glob("*.mp4")):
+        return True
+    fin = wd / "final"
+    if fin.is_dir() and any(fin.glob("*.mp4")):
+        return True
+    return False
+
+
 def _find_final(workdir: Path, variant: str) -> Optional[Path]:
     """Locate the engine's produced final mp4. Prefer the requested variant, then the
     base passes the build step always writes (`<name>_raw.mp4`, `<name>_natural.mp4`)."""
@@ -198,6 +215,7 @@ def register(queue, kind: str = "render_morph") -> None:
 
 __all__ = [
     "bake_morph",
+    "has_prerendered_clips",
     "morph_runner",
     "register",
 ]

@@ -32,7 +32,78 @@ OVERLAY_SCRIPT = Path(
     os.path.expanduser("~/.claude/skills/fadishoot-overlays/scripts/overlay_shoot.py")
 )
 
+# ffmpeg-full / ffprobe-full — the wrapped engine derives beats from the clip's own
+# audio, so before invoking it we must guarantee the input actually carries an audio
+# track (the orchestrator's base-prep strips audio with `-an`). We probe + (re)mux here.
+FFMPEG = "/opt/homebrew/Cellar/ffmpeg-full/8.1_1/bin/ffmpeg"
+FFPROBE = "/opt/homebrew/Cellar/ffmpeg-full/8.1_1/bin/ffprobe"
+if not Path(FFMPEG).exists():
+    FFMPEG = shutil.which("ffmpeg") or "ffmpeg"
+    FFPROBE = shutil.which("ffprobe") or "ffprobe"
+
 ProgressFn = Callable[[float, str], Awaitable[None]]
+
+
+def _has_audio(path: Path) -> bool:
+    """True if `path` carries at least one audio stream (ffprobe)."""
+    try:
+        out = subprocess.run(
+            [FFPROBE, "-v", "error", "-select_streams", "a:0",
+             "-show_entries", "stream=codec_name", "-of", "default=nw=1:nk=1", str(path)],
+            capture_output=True, text=True,
+        ).stdout.strip()
+        return bool(out)
+    except OSError:
+        return False
+
+
+def _probe_duration(path: Path) -> float:
+    try:
+        out = subprocess.run(
+            [FFPROBE, "-v", "error", "-show_entries", "format=duration",
+             "-of", "default=nw=1:nk=1", str(path)],
+            capture_output=True, text=True,
+        ).stdout.strip()
+        return float(out or 0.0)
+    except (OSError, ValueError):
+        return 0.0
+
+
+def _ensure_audio(src: Path, work_out: Path, *, audio_src: Optional[Path]) -> Path:
+    """Return a clip guaranteed to have an audio track so beat detection never crashes.
+
+    The wrapped overlay engine extracts a wav from the input and parses beats from it; an
+    audio-less input makes that extraction yield no file and the engine aborts. The
+    orchestrator's base-prep strips audio (`-an`), so here we re-attach audio:
+      • prefer the original source clip's audio (`audio_src`, the real performance audio
+        the beats should come from), trimmed/padded to the segment length;
+      • else synthesize a silent track of the right length (no beats → no flashes, but a
+        clean bake that never aborts the export).
+    """
+    if _has_audio(src):
+        return src
+    dur = _probe_duration(src) or 2.0
+    work_out.parent.mkdir(parents=True, exist_ok=True)
+    if audio_src is not None and _has_audio(audio_src):
+        cmd = [
+            FFMPEG, "-y", "-loglevel", "error",
+            "-i", str(src), "-i", str(audio_src),
+            "-map", "0:v:0", "-map", "1:a:0",
+            "-c:v", "copy", "-c:a", "aac", "-b:a", "192k", "-shortest", str(work_out),
+        ]
+    else:
+        cmd = [
+            FFMPEG, "-y", "-loglevel", "error",
+            "-i", str(src),
+            "-f", "lavfi", "-i", f"anullsrc=channel_layout=stereo:sample_rate=44100",
+            "-map", "0:v:0", "-map", "1:a:0",
+            "-c:v", "copy", "-c:a", "aac", "-b:a", "128k", "-t", f"{max(0.1, dur):.3f}",
+            str(work_out),
+        ]
+    proc = subprocess.run(cmd, capture_output=True, text=True)
+    if proc.returncode != 0 or not work_out.exists():
+        return src  # best-effort; let the engine try the original
+    return work_out
 
 # category → element-id substring(s) the engine's manifest understands. The engine takes
 # --include <ids>; we map the coarse contract `category` onto a starter set of ids. An
@@ -96,11 +167,17 @@ def bake_overlay(
     seed: int = 7,
     segment: str = "full",
     keep_pass: bool = False,
+    audio_src: Optional[Path] = None,
 ) -> Path:
     """Run the native fadishoot-overlays engine over `src`. Returns `out`.
 
     `coverage` ("full"/"partial") nudges the default flash density when `density` is
     unset (full → denser hits). Raises RuntimeError with engine stderr on failure.
+
+    `segment` is the overlay window the engine scatters flashes over — pass a numeric
+    "START-END" (seconds) for an export clip; "full"/"auto" are also accepted by the
+    engine. `audio_src` (optional) is the original clip whose audio the engine should
+    derive beats from when `src` itself has been stripped of audio upstream.
     """
     if not OVERLAY_SCRIPT.exists():
         raise RuntimeError(f"fadishoot-overlays engine not found at {OVERLAY_SCRIPT}")
@@ -111,13 +188,23 @@ def bake_overlay(
     if density is None:
         density = 0.9 if coverage == "full" else 0.6
 
+    # The engine parses beats from the input's own audio; guarantee one exists so it can
+    # never abort on a missing wav (the orchestrator strips audio in base-prep).
+    audio_work = out.with_name(out.stem + "__withaudio.mp4")
+    eng_src = _ensure_audio(
+        src, audio_work,
+        audio_src=Path(audio_src).expanduser().resolve() if audio_src else None,
+    )
+
     cmd = _build_cmd(
-        src, out,
+        eng_src, out,
         category=category, asset_id=asset_id, beat_sync=beat_sync,
         coverage=coverage, density=density, seed=seed,
         segment=segment, keep_pass=keep_pass,
     )
     proc = subprocess.run(cmd, capture_output=True, text=True)
+    if eng_src != src and audio_work.exists() and not keep_pass:
+        audio_work.unlink(missing_ok=True)
     if proc.returncode != 0:
         raise RuntimeError(
             f"fadishoot-overlays failed (exit {proc.returncode}):\n"

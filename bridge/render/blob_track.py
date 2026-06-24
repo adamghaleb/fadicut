@@ -62,8 +62,10 @@ RENDER_SCRIPT = _RENDER_DIR / "blob_render.py"
 
 # ffmpeg-full for the composite (transparent .mov over the clip).
 FFMPEG = "/opt/homebrew/Cellar/ffmpeg-full/8.1_1/bin/ffmpeg"
+FFPROBE = "/opt/homebrew/Cellar/ffmpeg-full/8.1_1/bin/ffprobe"
 if not Path(FFMPEG).exists():
     FFMPEG = shutil.which("ffmpeg") or "ffmpeg"
+    FFPROBE = shutil.which("ffprobe") or "ffprobe"
 
 ProgressFn = Callable[[float, str], Awaitable[None]]
 
@@ -124,6 +126,93 @@ def _track(src: Path, tracks_json: Path, *, max_features: int, reseed_every: int
         tail = (proc.stderr or proc.stdout or "").strip()[-2000:]
         raise RuntimeError(f"blob tracker failed (exit {proc.returncode}):\n{tail}")
     return json.loads(tracks_json.read_text())
+
+
+# ───────────────────────── centered fallback (no features) ─────────────────────────
+
+def _probe_video(src: Path) -> tuple[int, int, float, int]:
+    """(width, height, fps, n_frames) via ffprobe — for the synthetic centered path."""
+    def q(key: str) -> str:
+        return subprocess.run(
+            [FFPROBE, "-v", "error", "-select_streams", "v:0",
+             "-show_entries", f"stream={key}", "-of", "default=nw=1:nk=1", str(src)],
+            capture_output=True, text=True,
+        ).stdout.strip()
+    w = int(q("width") or 0) or 1080
+    h = int(q("height") or 0) or 1920
+    rfr = q("r_frame_rate") or "24/1"
+    try:
+        a, b = (rfr.split("/") + ["1"])[:2]
+        fps = float(a) / float(b) if float(b) else 24.0
+    except (ValueError, ZeroDivisionError):
+        fps = 24.0
+    nb = q("nb_frames")
+    if nb.isdigit() and int(nb) > 0:
+        n = int(nb)
+    else:
+        durs = subprocess.run(
+            [FFPROBE, "-v", "error", "-show_entries", "format=duration",
+             "-of", "default=nw=1:nk=1", str(src)],
+            capture_output=True, text=True,
+        ).stdout.strip()
+        try:
+            n = max(2, int(round(float(durs or 0.0) * fps)))
+        except ValueError:
+            n = max(2, int(round(2.0 * fps)))
+    return w, h, fps, n
+
+
+def _synthetic_center_tracks(src: Path, *, n_points: int = 7) -> dict:
+    """Build a tracks.json-shaped dict whose points drift gently around the frame center.
+
+    Used as a graceful fallback when the OpenCV tracker finds no features on a low-detail
+    clip: the blob renderer still produces a centered/motion reticle cage so the effect
+    bakes instead of aborting the whole export. Mirrors the tracker's output schema
+    (id/label/born_frame/died_frame/points[{frame,x,y}]).
+    """
+    import math
+
+    w, h, fps, n = _probe_video(src)
+    cx, cy = w / 2.0, h / 2.0
+    spread = min(w, h) * 0.16
+    tracks = []
+    for i in range(n_points):
+        ang0 = (2.0 * math.pi * i) / n_points
+        r = spread * (0.45 + 0.55 * ((i % 3) / 2.0))
+        pts = []
+        for f in range(n):
+            phase = ang0 + (2.0 * math.pi * f) / max(1, n) * 0.5
+            x = cx + r * math.cos(phase) + (spread * 0.18) * math.sin(f * 0.13 + i)
+            y = cy + r * math.sin(phase) + (spread * 0.18) * math.cos(f * 0.11 + i)
+            pts.append({"frame": f, "x": round(float(x), 2), "y": round(float(y), 2)})
+        tracks.append({
+            "id": i, "label": f"P{i:03d}",
+            "born_frame": 0, "died_frame": -1, "points": pts,
+        })
+    return {
+        "video": str(src), "fps": fps, "size": [w, h],
+        "n_frames": n, "tracks": tracks,
+    }
+
+
+def _track_or_center(
+    src: Path, tracks_json: Path, *, max_features: int, reseed_every: int
+) -> dict:
+    """Run the tracker; on a 'no features' / empty-track outcome, fall back to a synthetic
+    centered path so the blob effect always bakes (never aborts the export)."""
+    try:
+        td = _track(src, tracks_json, max_features=max_features, reseed_every=reseed_every)
+    except RuntimeError as e:
+        msg = str(e).lower()
+        if "no features" in msg or "failed to read first frame" in msg:
+            td = _synthetic_center_tracks(src)
+            tracks_json.write_text(json.dumps(td))
+            return td
+        raise
+    if not td.get("tracks"):
+        td = _synthetic_center_tracks(src)
+        tracks_json.write_text(json.dumps(td))
+    return td
 
 
 # ───────────────────────── stage 2: render the transparent pass ─────────────────────────
@@ -247,7 +336,9 @@ def bake_blob_track(
     work.mkdir(parents=True, exist_ok=True)
     try:
         tracks_json = work / "tracks.json"
-        td = _track(src, tracks_json, max_features=max_features, reseed_every=reseed_every)
+        td = _track_or_center(
+            src, tracks_json, max_features=max_features, reseed_every=reseed_every
+        )
 
         overlay_mov = work / f"blob_{style}.mov"
         _render_pass(
