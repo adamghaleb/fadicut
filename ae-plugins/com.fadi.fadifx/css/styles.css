@@ -95,6 +95,33 @@ body {
 	box-shadow: 0 0 6px rgba(255, 255, 255, 0.25);
 }
 
+/* Deselected color — dimmed with a slash, skipped in the cycle */
+.swatch.off {
+	opacity: 0.3;
+	filter: saturate(0.4);
+}
+
+.swatch.off::after {
+	content: "";
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	background: linear-gradient(
+		to top right,
+		transparent calc(50% - 1px),
+		rgba(255, 255, 255, 0.85) calc(50% - 1px),
+		rgba(255, 255, 255, 0.85) calc(50% + 1px),
+		transparent calc(50% + 1px)
+	);
+	pointer-events: none;
+}
+
+.swatch.off:hover {
+	opacity: 0.55;
+}
+
 /* Drag states */
 .swatch.dragging {
 	opacity: 0.25;
@@ -386,4 +413,93 @@ input[type="number"]::-webkit-outer-spin-button {
 
 .sub-row {
 	padding-left: 10px;
+}
+
+/* Static fills share the palette; animation controls retain their own mode. */
+.operation-modes {
+	display: flex;
+	gap: 3px;
+	padding: 3px;
+	background: var(--bg-light);
+	border: 1px solid var(--border);
+	border-radius: 3px;
+}
+
+.operation-modes button {
+	flex: 1;
+	padding: 5px 3px;
+	background: transparent;
+	border: 1px solid transparent;
+	border-radius: 2px;
+	color: var(--text);
+	font: inherit;
+	cursor: pointer;
+}
+
+.operation-modes button[aria-pressed="true"] {
+	background: var(--bg-lighter);
+	border-color: var(--border);
+	color: var(--text-bright);
+}
+
+.fill-only,
+.layer-fill-mode .animate-only,
+.layer-fill-mode #customBtn {
+	display: none;
+}
+
+.layer-fill-mode .fill-only {
+	display: block;
+}
+
+.layer-fill-mode .swatch.start {
+	border-color: transparent;
+	box-shadow: none;
+}
+
+.layer-fill-mode .swatch,
+.layer-fill-mode #orderedBtn {
+	cursor: grab;
+}
+
+.fill-help,
+.fill-order-hint {
+	font-size: 10px;
+	line-height: 1.4;
+	margin-top: 8px;
+}
+
+.fill-order-hint {
+	color: var(--text-dim);
+	font-size: 9px;
+}
+
+.fill-drop-target {
+	margin-top: 8px;
+	padding: 14px 7px;
+	border: 1px dashed var(--border);
+	border-radius: 3px;
+	background: var(--bg);
+	text-align: center;
+	font-size: 10px;
+}
+
+.fill-drop-target.drag-over {
+	border-color: var(--accent);
+	color: var(--text-bright);
+	background: var(--bg-lighter);
+}
+
+.fill-busy .fill-drop-target,
+.fill-busy.layer-fill-mode .swatch,
+.fill-busy.layer-fill-mode #orderedBtn {
+	opacity: 0.5;
+	cursor: wait;
+}
+
+.swatch:focus-visible,
+.operation-modes button:focus-visible,
+.swatch-actions button:focus-visible {
+	outline: 2px solid var(--text-bright);
+	outline-offset: 2px;
 }

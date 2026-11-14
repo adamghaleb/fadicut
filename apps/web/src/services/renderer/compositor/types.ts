@@ -74,5 +74,4 @@ export type RenderedTextureDescriptor = {
 };
 
 export type TextureUploadDescriptor =
-	| ExternalTextureDescriptor
-	| RenderedTextureDescriptor;
+	ExternalTextureDescriptor | RenderedTextureDescriptor;

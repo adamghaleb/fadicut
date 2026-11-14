@@ -277,10 +277,7 @@ export interface MaskCanvasPathOverlay {
 }
 
 export type MaskOverlay =
-	| MaskLineOverlay
-	| MaskRectOverlay
-	| MaskShapeOverlay
-	| MaskCanvasPathOverlay;
+	MaskLineOverlay | MaskRectOverlay | MaskShapeOverlay | MaskCanvasPathOverlay;
 
 export interface MaskDefaultContext {
 	elementSize?: { width: number; height: number };

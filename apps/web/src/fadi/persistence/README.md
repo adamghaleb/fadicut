@@ -34,9 +34,7 @@ import {
 
 const client = createBridgeClientFromEnv(); // null if no Bridge configured
 // Adapt the existing IndexedDB project adapter to the LocalMirror shape (get/set/remove):
-const localMirror: LocalMirror = {
-	/* wrap services/storage adapter */
-};
+const localMirror: LocalMirror = {/* wrap services/storage adapter */};
 
 const persistence = new ProjectPersistence({
 	client: client!,

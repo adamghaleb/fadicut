@@ -1,5 +1,6 @@
 /* fadiFX — ExtendScript: applies effects & keyframes to After Effects layers */
 /* Note: ExtendScript is ES3 — no JSON.parse, no modern JS features */
+#include "layer-fill.jsx"
 
 function fadiFX_apply(settingsJSON) {
 	try {

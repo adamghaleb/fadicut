@@ -19,11 +19,7 @@ export interface BridgeConfig {
 const DEFAULT_BASE_URL = "http://127.0.0.1:8765";
 
 export type JobStatus =
-	| "queued"
-	| "running"
-	| "succeeded"
-	| "failed"
-	| "cancelled";
+	"queued" | "running" | "succeeded" | "failed" | "cancelled";
 
 /** Result dict the orchestrator returns on success (render.orchestrator.render_edl). */
 export interface RenderResult {

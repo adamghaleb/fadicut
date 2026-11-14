@@ -1,0 +1,290 @@
+import type { TimelineTrack, TimelineElement } from "@/types/timeline";
+import type { MediaAsset } from "@/types/assets";
+import { isMainTrack } from "@/lib/timeline";
+import {
+	DEFAULT_TEXT_ELEMENT,
+	DEFAULT_LINE_HEIGHT,
+	DEFAULT_TEXT_BACKGROUND,
+	FONT_SIZE_SCALE_REFERENCE,
+} from "@/constants/text-constants";
+import { getTextVisualRect, measureTextBlock } from "@/lib/text/layout";
+import {
+	getElementLocalTime,
+	resolveTransformAtTime,
+	resolveNumberAtTime,
+} from "@/lib/animation";
+
+export interface ElementBounds {
+	cx: number;
+	cy: number;
+	width: number;
+	height: number;
+	rotation: number;
+}
+
+export interface ElementWithBounds {
+	trackId: string;
+	elementId: string;
+	element: TimelineElement;
+	bounds: ElementBounds;
+}
+
+function getVisualElementBounds({
+	canvasWidth,
+	canvasHeight,
+	sourceWidth,
+	sourceHeight,
+	transform,
+}: {
+	canvasWidth: number;
+	canvasHeight: number;
+	sourceWidth: number;
+	sourceHeight: number;
+	transform: {
+		scale: number;
+		position: { x: number; y: number };
+		rotate: number;
+	};
+}): ElementBounds {
+	const containScale = Math.min(
+		canvasWidth / sourceWidth,
+		canvasHeight / sourceHeight,
+	);
+	const scaledWidth = sourceWidth * containScale * transform.scale;
+	const scaledHeight = sourceHeight * containScale * transform.scale;
+	const cx = canvasWidth / 2 + transform.position.x;
+	const cy = canvasHeight / 2 + transform.position.y;
+
+	return {
+		cx,
+		cy,
+		width: scaledWidth,
+		height: scaledHeight,
+		rotation: transform.rotate,
+	};
+}
+
+export function getElementBounds({
+	element,
+	canvasSize,
+	mediaAsset,
+	localTime,
+}: {
+	element: TimelineElement;
+	canvasSize: { width: number; height: number };
+	mediaAsset?: MediaAsset | null;
+	localTime: number;
+}): ElementBounds | null {
+	if (element.type === "audio" || element.type === "effect") return null;
+	if ("hidden" in element && element.hidden) return null;
+
+	const { width: canvasWidth, height: canvasHeight } = canvasSize;
+
+	if (element.type === "video" || element.type === "image") {
+		const transform = resolveTransformAtTime({
+			baseTransform: element.transform,
+			animations: element.animations,
+			localTime,
+		});
+		const sourceWidth = mediaAsset?.width ?? canvasWidth;
+		const sourceHeight = mediaAsset?.height ?? canvasHeight;
+		return getVisualElementBounds({
+			canvasWidth,
+			canvasHeight,
+			sourceWidth,
+			sourceHeight,
+			transform,
+		});
+	}
+
+	if (element.type === "sticker") {
+		const transform = resolveTransformAtTime({
+			baseTransform: element.transform,
+			animations: element.animations,
+			localTime,
+		});
+		return getVisualElementBounds({
+			canvasWidth,
+			canvasHeight,
+			sourceWidth: 200,
+			sourceHeight: 200,
+			transform,
+		});
+	}
+
+	if (element.type === "text") {
+		const transform = resolveTransformAtTime({
+			baseTransform: element.transform,
+			animations: element.animations,
+			localTime,
+		});
+		const scaledFontSize =
+			element.fontSize * (canvasHeight / FONT_SIZE_SCALE_REFERENCE);
+		const letterSpacing = element.letterSpacing ?? 0;
+		const lineHeight = element.lineHeight ?? DEFAULT_LINE_HEIGHT;
+		const lineHeightPx = scaledFontSize * lineHeight;
+
+		let measuredWidth = 100;
+		let measuredHeight = scaledFontSize;
+
+		const canvas = document.createElement("canvas");
+		canvas.width = 4096;
+		canvas.height = 4096;
+		const ctx = canvas.getContext("2d");
+
+		if (ctx) {
+			const fontWeight = element.fontWeight === "bold" ? "bold" : "normal";
+			const fontStyle = element.fontStyle === "italic" ? "italic" : "normal";
+			const fontFamily = `"${element.fontFamily.replace(/"/g, '\\"')}"`;
+			ctx.font = `${fontStyle} ${fontWeight} ${scaledFontSize}px ${fontFamily}, sans-serif`;
+			ctx.textAlign = element.textAlign as CanvasTextAlign;
+			if ("letterSpacing" in ctx) {
+				(
+					ctx as CanvasRenderingContext2D & { letterSpacing: string }
+				).letterSpacing = `${letterSpacing}px`;
+			}
+
+			const lines = element.content.split("\n");
+			const lineMetrics = lines.map((line) => ctx.measureText(line));
+			const block = measureTextBlock({
+				lineMetrics,
+				lineHeightPx,
+				fallbackFontSize: scaledFontSize,
+			});
+			const fontSizeRatio = element.fontSize / DEFAULT_TEXT_ELEMENT.fontSize;
+			const resolvedBackground = {
+				...element.background,
+				paddingX: resolveNumberAtTime({
+					baseValue:
+						element.background.paddingX ?? DEFAULT_TEXT_BACKGROUND.paddingX,
+					animations: element.animations,
+					propertyPath: "background.paddingX",
+					localTime,
+				}),
+				paddingY: resolveNumberAtTime({
+					baseValue:
+						element.background.paddingY ?? DEFAULT_TEXT_BACKGROUND.paddingY,
+					animations: element.animations,
+					propertyPath: "background.paddingY",
+					localTime,
+				}),
+				offsetX: resolveNumberAtTime({
+					baseValue:
+						element.background.offsetX ?? DEFAULT_TEXT_BACKGROUND.offsetX,
+					animations: element.animations,
+					propertyPath: "background.offsetX",
+					localTime,
+				}),
+				offsetY: resolveNumberAtTime({
+					baseValue:
+						element.background.offsetY ?? DEFAULT_TEXT_BACKGROUND.offsetY,
+					animations: element.animations,
+					propertyPath: "background.offsetY",
+					localTime,
+				}),
+			};
+			const visualRect = getTextVisualRect({
+				textAlign: element.textAlign,
+				block,
+				background: resolvedBackground,
+				fontSizeRatio,
+			});
+			measuredWidth = visualRect.width;
+			measuredHeight = visualRect.height;
+			const localCenterX = visualRect.left + visualRect.width / 2;
+			const localCenterY = visualRect.top + visualRect.height / 2;
+			const scaledCenterX = localCenterX * transform.scale;
+			const scaledCenterY = localCenterY * transform.scale;
+			const rotationRad = (transform.rotate * Math.PI) / 180;
+			const cos = Math.cos(rotationRad);
+			const sin = Math.sin(rotationRad);
+			const rotatedCenterX = scaledCenterX * cos - scaledCenterY * sin;
+			const rotatedCenterY = scaledCenterX * sin + scaledCenterY * cos;
+			return {
+				cx: canvasWidth / 2 + transform.position.x + rotatedCenterX,
+				cy: canvasHeight / 2 + transform.position.y + rotatedCenterY,
+				width: measuredWidth * transform.scale,
+				height: measuredHeight * transform.scale,
+				rotation: transform.rotate,
+			};
+		}
+
+		const width = measuredWidth * transform.scale;
+		const height = measuredHeight * transform.scale;
+		return {
+			cx: canvasWidth / 2 + transform.position.x,
+			cy: canvasHeight / 2 + transform.position.y,
+			width,
+			height,
+			rotation: transform.rotate,
+		};
+	}
+
+	return null;
+}
+
+export function getVisibleElementsWithBounds({
+	tracks,
+	currentTime,
+	canvasSize,
+	mediaAssets,
+}: {
+	tracks: TimelineTrack[];
+	currentTime: number;
+	canvasSize: { width: number; height: number };
+	mediaAssets: MediaAsset[];
+}): ElementWithBounds[] {
+	const mediaMap = new Map(mediaAssets.map((m) => [m.id, m]));
+	const visibleTracks = tracks.filter(
+		(track) => !("hidden" in track && track.hidden),
+	);
+	const orderedTracks = [
+		...visibleTracks.filter((track) => !isMainTrack(track)),
+		...visibleTracks.filter((track) => isMainTrack(track)),
+	].reverse();
+
+	const result: ElementWithBounds[] = [];
+
+	for (const track of orderedTracks) {
+		const elements = track.elements
+			.filter((element) => !("hidden" in element && element.hidden))
+			.filter(
+				(element) =>
+					currentTime >= element.startTime &&
+					currentTime < element.startTime + element.duration,
+			)
+			.slice()
+			.sort((a, b) => {
+				if (a.startTime !== b.startTime) return a.startTime - b.startTime;
+				return a.id.localeCompare(b.id);
+			});
+
+		for (const element of elements) {
+			const localTime = getElementLocalTime({
+				timelineTime: currentTime,
+				elementStartTime: element.startTime,
+				elementDuration: element.duration,
+			});
+			const mediaAsset =
+				element.type === "video" || element.type === "image"
+					? mediaMap.get(element.mediaId)
+					: undefined;
+			const bounds = getElementBounds({
+				element,
+				canvasSize,
+				mediaAsset,
+				localTime,
+			});
+			if (bounds) {
+				result.push({
+					trackId: track.id,
+					elementId: element.id,
+					element,
+					bounds,
+				});
+			}
+		}
+	}
+
+	return result;
+}

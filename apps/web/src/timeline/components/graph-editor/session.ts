@@ -62,8 +62,7 @@ interface GraphEditorBaseSelectionState {
 	message: string;
 }
 
-export interface GraphEditorUnavailableState
-	extends GraphEditorBaseSelectionState {
+export interface GraphEditorUnavailableState extends GraphEditorBaseSelectionState {
 	status: "unavailable";
 	reason: GraphEditorUnavailableReason;
 }
@@ -78,8 +77,7 @@ export interface GraphEditorReadyState extends GraphEditorBaseSelectionState {
 }
 
 export type GraphEditorSelectionState =
-	| GraphEditorUnavailableState
-	| GraphEditorReadyState;
+	GraphEditorUnavailableState | GraphEditorReadyState;
 
 export interface GraphEditorCurvePatch {
 	keyframeId: string;

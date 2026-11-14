@@ -38,11 +38,7 @@ export interface MeanduLyricJobPayload {
 }
 
 export type JobStatus =
-	| "queued"
-	| "running"
-	| "succeeded"
-	| "failed"
-	| "cancelled";
+	"queued" | "running" | "succeeded" | "failed" | "cancelled";
 
 export interface JobView {
 	id: string;

@@ -19,8 +19,7 @@ type TKeysWithValueUndefined<T> = {
 export type TActionWithArgs = keyof TActionArgsMap;
 
 export type TActionWithOptionalArgs =
-	| TActionWithNoArgs
-	| TKeysWithValueUndefined<TActionArgsMap>;
+	TActionWithNoArgs | TKeysWithValueUndefined<TActionArgsMap>;
 
 export type TActionWithNoArgs = Exclude<TAction, TActionWithArgs>;
 
@@ -39,6 +38,4 @@ export type TBoundActionList = {
 };
 
 export type TActionHandlerOptions =
-	| MutableRefObject<boolean>
-	| boolean
-	| undefined;
+	MutableRefObject<boolean> | boolean | undefined;

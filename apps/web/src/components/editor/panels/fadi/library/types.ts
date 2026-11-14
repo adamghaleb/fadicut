@@ -9,12 +9,7 @@ export type AssetKind = "video" | "image" | "audio" | "unknown";
 
 /** The `kind` hint from asset_roots.toml — the root's default category. */
 export type AssetKindHint =
-	| "loop"
-	| "overlay"
-	| "clip"
-	| "footage"
-	| "mixed"
-	| (string & {});
+	"loop" | "overlay" | "clip" | "footage" | "mixed" | (string & {});
 
 /** One catalog row. Matches AssetCatalog._row_to_dict. */
 export interface CatalogAsset {

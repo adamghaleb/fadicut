@@ -16,10 +16,7 @@
 // ── grade (engine: fadi_grade) ───────────────────────────────────────────────
 
 export type GradeMode =
-	| "hls_substitution"
-	| "rainbow"
-	| "hue_shift"
-	| "outline";
+	"hls_substitution" | "rainbow" | "hue_shift" | "outline";
 
 export interface GradeEffectParams {
 	type: "grade";

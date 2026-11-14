@@ -48,8 +48,7 @@ export type AnimationNumericPropertyPath = Exclude<
 export type ContinuousKeyframeInterpolation = "linear" | "hold" | "bezier";
 export type DiscreteKeyframeInterpolation = "hold";
 export type AnimationInterpolation =
-	| ContinuousKeyframeInterpolation
-	| DiscreteKeyframeInterpolation;
+	ContinuousKeyframeInterpolation | DiscreteKeyframeInterpolation;
 
 export type ScalarSegmentType = "step" | "linear" | "bezier";
 export type TangentMode = "auto" | "aligned" | "broken" | "flat";

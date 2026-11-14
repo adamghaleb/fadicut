@@ -17,8 +17,9 @@
 	];
 
 	// Working color array — this IS the cycle order (left to right = play order)
+	// Each color carries an `enabled` flag; disabled colors are skipped in the cycle.
 	var fadiColors = CANONICAL.map(function (c) {
-		return { name: c.name, hex: c.hex };
+		return { name: c.name, hex: c.hex, enabled: true };
 	});
 
 	var FRAME_PRESETS = [1, 2, 3, 5, 10];
@@ -46,29 +47,103 @@
 	var totalDuration = document.getElementById("totalDuration");
 	var applyBtn = document.getElementById("applyBtn");
 	var statusEl = document.getElementById("status");
+	var layerFill = new FadiLayerFill({
+		bridge: csInterface,
+		setStatus: setStatus,
+		onModeChange: renderSwatches,
+		getColors: function () {
+			return fadiColors
+				.filter(function (c) {
+					return c.enabled;
+				})
+				.map(function (c) {
+					return c.hex;
+				});
+		},
+	});
 
 	// ---- Color Swatches ----
 
 	var dragSrcIndex = null;
 
+	function enabledCount() {
+		return fadiColors.filter(function (c) {
+			return c.enabled;
+		}).length;
+	}
+
+	function toggleColor(i) {
+		if (fadiColors[i].enabled && enabledCount() <= 1) {
+			setStatus("Need at least 1 color", "error");
+			return;
+		}
+		fadiColors[i].enabled = !fadiColors[i].enabled;
+		renderSwatches();
+	}
+
 	function renderSwatches() {
 		while (colorRow.firstChild) colorRow.removeChild(colorRow.firstChild);
+		orderedBtn.classList.toggle(
+			"active",
+			!layerFill.isActive() && !isCustomMode,
+		);
+
+		// Start color = first ENABLED swatch
+		var startIndex = -1;
+		for (var s = 0; s < fadiColors.length; s++) {
+			if (fadiColors[s].enabled) {
+				startIndex = s;
+				break;
+			}
+		}
 
 		fadiColors.forEach(function (color, i) {
 			var el = document.createElement("div");
-			// First swatch = start color (highlighted)
-			el.className = "swatch" + (i === 0 ? " start" : "");
+			el.className =
+				"swatch" +
+				(i === startIndex ? " start" : "") +
+				(color.enabled ? "" : " off");
 			el.style.backgroundColor = color.hex;
-			el.title = color.name + (i === 0 ? " (start)" : "");
+			el.title = color.enabled
+				? color.name +
+					(i === startIndex ? " (start)" : "") +
+					" — alt-click / right-click to remove from cycle"
+				: color.name + " (off) — click to re-enable";
 			el.draggable = isCustomMode;
+			el.tabIndex = 0;
+			el.setAttribute("role", "button");
+			el.setAttribute("aria-label", el.title);
+			el.addEventListener("keydown", function (e) {
+				if (e.key === "Enter" || e.key === " ") {
+					e.preventDefault();
+					if (!e.repeat) el.click();
+				}
+			});
+			if (layerFill.isActive()) {
+				layerFill.bindSwatch(el, color, function () {
+					toggleColor(i);
+				});
+				colorRow.appendChild(el);
+				return;
+			}
 
-			// Click to set as start color — rotate array
-			el.addEventListener("click", function () {
+			// Click: re-enable if off, alt-click toggles off, plain click sets start
+			el.addEventListener("click", function (e) {
+				if (!color.enabled || e.altKey) {
+					toggleColor(i);
+					return;
+				}
 				if (i === 0) return; // already start
 				var head = fadiColors.slice(0, i);
 				var tail = fadiColors.slice(i);
 				fadiColors = tail.concat(head);
 				renderSwatches();
+			});
+
+			// Right-click toggles on/off
+			el.addEventListener("contextmenu", function (e) {
+				e.preventDefault();
+				toggleColor(i);
 			});
 
 			// Drag to reorder (custom mode only)
@@ -139,9 +214,17 @@
 		customBtn.classList.toggle("active", custom);
 
 		if (!custom) {
-			// Reset to canonical order, respecting current direction
+			// Reset to canonical order, keeping each color's on/off state
+			var enabledByHex = {};
+			fadiColors.forEach(function (c) {
+				enabledByHex[c.hex] = c.enabled;
+			});
 			fadiColors = CANONICAL.map(function (c) {
-				return { name: c.name, hex: c.hex };
+				return {
+					name: c.name,
+					hex: c.hex,
+					enabled: enabledByHex[c.hex] !== false,
+				};
 			});
 			if (isReversed) fadiColors.reverse();
 		}
@@ -150,6 +233,10 @@
 	}
 
 	orderedBtn.addEventListener("click", function () {
+		if (layerFill.isActive()) {
+			layerFill.applyOrdered();
+			return;
+		}
 		setMode(false);
 	});
 	customBtn.addEventListener("click", function () {
@@ -267,8 +354,17 @@
 		// For ping-pong, array is in forward order, send "pingpong".
 		var effectiveDir = direction.value === "pingpong" ? "pingpong" : "forward";
 
+		// Only enabled colors make it into the cycle, in display order
+		var activeColors = fadiColors.filter(function (c) {
+			return c.enabled;
+		});
+		if (activeColors.length === 0) {
+			setStatus("ERROR: no colors selected", "error");
+			return;
+		}
+
 		var settings = {
-			colors: fadiColors.map(function (c) {
+			colors: activeColors.map(function (c) {
 				return c.hex;
 			}),
 			frameDuration: parseInt(frameInput.value, 10),

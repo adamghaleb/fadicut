@@ -15,11 +15,7 @@ export interface TranscriptionResult {
 }
 
 export type TranscriptionStatus =
-	| "idle"
-	| "loading-model"
-	| "transcribing"
-	| "complete"
-	| "error";
+	"idle" | "loading-model" | "transcribing" | "complete" | "error";
 
 export interface TranscriptionProgress {
 	status: TranscriptionStatus;

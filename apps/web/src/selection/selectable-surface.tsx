@@ -14,10 +14,7 @@ import {
 	selectRange,
 	toggleSelection,
 } from "@/selection/state";
-import type {
-	SelectableSurfaceProps,
-	SelectionState,
-} from "@/selection/types";
+import type { SelectableSurfaceProps, SelectionState } from "@/selection/types";
 import { useBoxSelect } from "@/selection/hooks/use-box-select";
 import { cn } from "@/utils/ui";
 
@@ -101,8 +98,7 @@ export function SelectableSurface({
 			id,
 		}: {
 			event:
-				| React.MouseEvent<HTMLDivElement>
-				| React.KeyboardEvent<HTMLDivElement>;
+				React.MouseEvent<HTMLDivElement> | React.KeyboardEvent<HTMLDivElement>;
 			id: string;
 		}) => {
 			setSelectionState((state) => {
@@ -198,7 +194,11 @@ export function SelectableSurface({
 				return;
 			}
 
-			if (event.key !== "Enter" && event.key !== " " && event.key !== "Escape") {
+			if (
+				event.key !== "Enter" &&
+				event.key !== " " &&
+				event.key !== "Escape"
+			) {
 				return;
 			}
 

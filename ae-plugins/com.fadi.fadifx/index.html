@@ -7,6 +7,22 @@
 	</head>
 	<body>
 		<div class="panel">
+			<div class="operation-modes" role="group" aria-label="Color action">
+				<button
+					id="fillLayersMode"
+					type="button"
+					title="Apply static Fill effects to selected layers"
+				>
+					Fill layers
+				</button>
+				<button
+					id="animateMode"
+					type="button"
+					title="Animate colors over time using the existing controls"
+				>
+					Animate
+				</button>
+			</div>
 			<!-- Colors -->
 			<div class="section">
 				<div class="section-label">Colors</div>
@@ -15,10 +31,22 @@
 					<button id="orderedBtn" class="active">Ordered</button>
 					<button id="customBtn">Custom</button>
 				</div>
+				<div class="fill-only">
+					<p class="fill-help">
+						Select layers in AE, then click a color or Ordered.
+					</p>
+					<div class="fill-drop-target" id="fillDropTarget">
+						Drop to fill selected layers
+					</div>
+					<p class="fill-order-hint">
+						Ordered follows the colors left to right, assigning layers top to
+						bottom, then repeats.
+					</p>
+				</div>
 			</div>
 
 			<!-- Timing -->
-			<div class="section">
+			<div class="section animate-only">
 				<div class="section-label">Timing</div>
 				<div class="row">
 					<span class="row-label">Frames</span>
@@ -54,7 +82,7 @@
 			</div>
 
 			<!-- Cycle -->
-			<div class="section">
+			<div class="section animate-only">
 				<div class="section-label">Cycle</div>
 				<div class="row">
 					<span class="row-label">Direction</span>
@@ -67,7 +95,7 @@
 			</div>
 
 			<!-- Pulse -->
-			<div class="section">
+			<div class="section animate-only">
 				<div class="section-label">Pulse</div>
 				<div class="row">
 					<span class="row-label">Wave</span>
@@ -88,7 +116,7 @@
 			</div>
 
 			<!-- Output -->
-			<div class="section">
+			<div class="section animate-only">
 				<div class="section-label">Output</div>
 				<div class="row">
 					<span class="row-label">Effect</span>
@@ -122,11 +150,12 @@
 				</div>
 			</div>
 
-			<button class="apply-btn" id="applyBtn">APPLY</button>
-			<div class="status" id="status"></div>
+			<button class="apply-btn animate-only" id="applyBtn">APPLY</button>
+			<div class="status" id="status" role="status" aria-live="polite"></div>
 		</div>
 
 		<script src="lib/CSInterface.js"></script>
+		<script src="js/layer-fill.js"></script>
 		<script src="js/main.js"></script>
 	</body>
 </html>

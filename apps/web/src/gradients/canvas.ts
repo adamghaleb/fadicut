@@ -7,8 +7,7 @@ import type {
 import { parseGradient } from "./parser";
 
 type BackgroundLayer =
-	| { type: "color"; value: string }
-	| { type: "gradient"; value: GradientAst };
+	{ type: "color"; value: string } | { type: "gradient"; value: GradientAst };
 
 type LinearPoints = {
 	x0: number;

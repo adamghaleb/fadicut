@@ -206,7 +206,7 @@ export function computeRmsBuckets({
 		const windowLength = Math.max(1, Math.min(bucketLength, maxWindowLength));
 		let maxMeanSquare = 0;
 
-		for (let winStart = bucketStart; winStart < bucketEnd; ) {
+		for (let winStart = bucketStart; winStart < bucketEnd;) {
 			const winEnd = Math.min(winStart + windowLength, bucketEnd);
 			const n = winEnd - winStart;
 			if (n > 0) {

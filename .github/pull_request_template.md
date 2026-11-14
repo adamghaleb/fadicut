@@ -3,6 +3,7 @@
 We are not currently accepting PRs except for critical bugs.
 
 If this is a bug fix:
+
 - [ ] I've opened an issue first
 - [ ] This was approved by a maintainer
 
