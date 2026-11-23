@@ -27,3 +27,12 @@ runs in-export); first cold lyric export ~3.5min then cached.
 - [ ] Reload live panel and verify click/drop/Undo while AE is idle.
 
 Review: reviewer found existing owned disabled/zero-opacity Fill could be invisible; fixed with enabled/full-opacity normalization and animation preflight, with tests. Native timeline clip drops are not implemented; selected-layer click and internal-drop actions are the supported workflow. Preserve the actively edited, unsaved city AEP.
+
+## Fadi Filter After Effects panel
+- [x] Inspect sibling CEP panels, gradient controls, palette catalog and PosterLab methods.
+- [x] Build a panel with editable band effects, presets and autosave.
+- [x] Confirm installation link, browser interactions, histogram math, and native-effect recipe under a host mock.
+- [ ] Complete the live AE 2026 footage comparison with PosterLab.
+
+### Fadi Filter review
+Pale HUD Kit informed the restrained controls and use of color only on the editable stripe. Rim-Lit Pills informed the bordered swatches and gradient control. The native look uses fixed cutoffs sampled at the playhead. PosterLab uses temporally smoothed OKLab and a different edge detector. The first live run reached a test comp, but stopped before verifying effect application. The installed Fadi Filter entry was visible in the Extensions menu.

@@ -173,3 +173,18 @@ ae-plugins/
 
 Each panel folder is a standard CEP extension: `CSXS/manifest.xml` (AEFT host,
 `PlayerDebugMode`-gated), `index.html`, `css/`, `js/`, `jsx/host.jsx`, `lib/CSInterface.js`.
+
+## Fadi Filter
+
+Open **Window → Extensions → Fadi Filter**, choose footage, and select a method.
+**Analyze frame** samples the first selected layer at the playhead. M1 places
+equal-population cutoffs, M2 uses multi-Otsu, and M7 chooses a two-tone cutoff near
+the 42nd percentile and adds an ink contour. You can move the cutoffs on the ramp
+before applying. **Apply** builds adjacent native Extract and Tint layers in a
+single After Effects undo group. M7 adds a native Find Edges pass. The source is
+retained below the result. Panel settings and named presets are saved locally.
+
+These are editable interpretations of PosterLab, with thresholds fixed at the
+sampled frame. PosterLab uses temporal smoothing, OKLab lightness and a different
+edge detector. Use opaque footage or a clean precomposition where overlapping
+copies could change semi-transparent edges.

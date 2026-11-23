@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Fadi Filter</title><link rel="stylesheet" href="css/styles.css"></head>
+<body><main>
+<header><h1>Fadi Filter</h1><button id="help" title="Shortcuts (?)" aria-label="Shortcuts">?</button></header>
+<label>Method<select id="method" title="How the source tones are divided"><option value="M2">Multi-Otsu · M2</option><option value="M1">Equal population · M1</option><option value="M7">Screenprint · M7</option></select></label>
+<label>Palette<select id="palette" title="Choose a saved Fadi palette"></select></label>
+<div class="pair"><label>Bands<input id="count" type="number" min="2" max="8" title="Number of tone bands"></label><label>Softness (%)<input id="softness" type="number" min="0" max="25" title="Transition width across each cut"></label></div>
+<div class="checks"><label><input id="black" type="checkbox"> Black band</label><label><input id="white" type="checkbox"> White band</label></div>
+<div id="ramp" aria-label="Drag the band boundaries. Hold Option to bypass snapping." title="Drag to place a boundary. Option bypasses snapping."></div>
+<div id="colors"></div>
+<div class="pair"><button id="analyze" title="Sample the active frame and place the cutoffs">Analyze frame</button><button id="apply" class="primary" title="Apply editable effects to selected layers">Apply</button></div>
+<label>Preset<select id="preset" title="Load a saved preset"></select></label>
+<div class="pair"><input id="name" placeholder="Preset name" aria-label="Preset name"><button id="save" title="Save named preset">Save</button></div>
+<p id="status" role="status"></p><dialog id="shortcuts"></dialog>
+</main><script src="lib/CSInterface.js"></script><script type="module" src="js/main.js"></script></body></html>

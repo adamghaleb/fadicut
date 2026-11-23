@@ -12,7 +12,7 @@ for v in 9 10 11 12; do
   defaults write "com.adobe.CSXS.$v" PlayerDebugMode 1 2>/dev/null || true
 done
 
-for ext in com.fadi.fadifx com.fadi.fadirange com.fadi.fadistrobe com.fadi.srt-importer; do
+for ext in com.fadi.fadifx com.fadi.fadirange com.fadi.fadifilter com.fadi.fadistrobe com.fadi.srt-importer; do
   if [ -d "$SRC/$ext" ]; then
     ln -sfn "$SRC/$ext" "$DEST/$ext"
     echo "  ✓ linked $ext"
